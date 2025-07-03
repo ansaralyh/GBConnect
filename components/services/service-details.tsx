@@ -7,50 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Star, MapPin, Calendar, Clock, Users, CheckCircle } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { useAuth } from "@/context/auth-context"
-
-// Mock service data with Pakistani locations and PKR currency
-const mockService = {
-  id: "1",
-  title: "Guided Tour of Badshahi Mosque",
-  description:
-    "Explore the historic Badshahi Mosque with a knowledgeable local guide. Built in 1671 by the Mughal Emperor Aurangzeb, the Badshahi Mosque is one of the most iconic landmarks in Lahore and a masterpiece of Mughal architecture. Our expert guides will take you through the rich history and architectural significance of this magnificent structure.",
-  longDescription:
-    "Join us for an immersive tour of the majestic Badshahi Mosque, one of the most iconic landmarks in Pakistan. Built in 1671 during the Mughal era, this architectural marvel stands as a testament to the rich cultural heritage of the region.\n\nOur experienced guides will take you through the grand courtyard, prayer halls, and minarets while sharing fascinating historical insights and stories. Learn about the mosque's construction, its significance during the Mughal period, and its continued importance in Pakistani culture today.\n\nThe tour includes:\n- Guided exploration of all major sections of the mosque\n- Historical commentary and cultural context\n- Time for photography and personal reflection\n- Small group size for a personalized experience\n\nThis tour is perfect for history enthusiasts, architecture lovers, and anyone interested in exploring Pakistan's cultural treasures.",
-  location: "Lahore, Punjab",
-  price: 2500, // in PKR
-  duration: "3 hours",
-  groupSize: "Up to 10 people",
-  rating: 4.8,
-  reviews: 124,
-  images: [
-    "/images/fyp.pic8.jpeg",
-    "/images/fyp.pic9.jpg",
-    "/images/fyp.pic10.jpg",
-  ],
-  provider: {
-    id: "3",
-    name: "Muhammad Ali",
-    rating: 4.9,
-    reviews: 287,
-    image: "/images/fyp.pic8.jpg",
-    description:
-      "Professional tour guide with over 10 years of experience specializing in historical and cultural tours across Pakistan.",
-  },
-  includes: ["Professional English-speaking guide", "Entrance fees", "Bottled water", "Historical information booklet"],
-  excludes: [
-    "Transportation to/from the mosque",
-    "Food and additional beverages",
-    "Personal expenses",
-    "Gratuities (optional)",
-  ],
-  categories: ["Cultural", "Historical"],
-  availableDates: [
-    { date: "2023-07-15", spotsLeft: 5 },
-    { date: "2023-07-16", spotsLeft: 8 },
-    { date: "2023-07-17", spotsLeft: 3 },
-    { date: "2023-07-18", spotsLeft: 10 },
-  ],
-}
+import { useEffect, useState } from "react"
 
 // Mock reviews
 const mockReviews = [
@@ -89,11 +46,33 @@ const mockReviews = [
   },
 ]
 
-export function ServiceDetails({ serviceId }: { serviceId: string }) {
+export function ServiceDetails({ id }: { id: string }) {
   const { user } = useAuth()
+  const [service, setService] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // In a real app, we would fetch the service based on the ID
-  const service = mockService
+  useEffect(() => {
+    async function fetchService() {
+      setLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(`/api/services/${id}`)
+        if (!res.ok) throw new Error("Failed to fetch service")
+        const data = await res.json()
+        setService(data)
+      } catch (err: any) {
+        setError(err.message || "Error fetching service")
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (id) fetchService()
+  }, [id])
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>
+  if (error) return <div className="p-8 text-center text-red-500">{error}</div>
+  if (!service) return <div className="p-8 text-center">Service not found.</div>
 
   return (
     <div className="container mx-auto py-8">
@@ -105,12 +84,12 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <div className="flex items-center gap-1">
               <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
-              <span className="font-medium">{service.rating}</span>
-              <span className="text-muted-foreground">({service.reviews} reviews)</span>
+              <span className="font-medium">{service.rating ?? "N/A"}</span>
+              <span className="text-muted-foreground">({service.reviews ?? 0} reviews)</span>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <MapPin className="h-5 w-5" />
-              <span>{service.location}</span>
+              <span>{service.location ?? "Unknown"}</span>
             </div>
           </div>
 
@@ -119,21 +98,21 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2">
                 <img
-                  src={service.images[0] || "/placeholder.svg"}
+                  src={service.images?.[0] || "/placeholder.svg"}
                   alt={service.title}
                   className="w-full h-64 md:h-80 object-cover rounded-lg"
                 />
               </div>
               <div>
                 <img
-                  src={service.images[1] || "/placeholder.svg"}
+                  src={service.images?.[1] || "/placeholder.svg"}
                   alt={`${service.title} view 2`}
                   className="w-full h-40 object-cover rounded-lg"
                 />
               </div>
               <div>
                 <img
-                  src={service.images[2] || "/placeholder.svg"}
+                  src={service.images?.[2] || "/placeholder.svg"}
                   alt={`${service.title} view 3`}
                   className="w-full h-40 object-cover rounded-lg"
                 />
@@ -151,13 +130,13 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
 
             <TabsContent value="description" className="mt-4">
               <div className="space-y-4">
-                <p className="text-muted-foreground whitespace-pre-line">{service.longDescription}</p>
+                <p className="text-muted-foreground whitespace-pre-line">{service.longDescription || service.description || "No description available."}</p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   <div>
                     <h3 className="font-semibold mb-2">What's Included</h3>
                     <ul className="space-y-2">
-                      {service.includes.map((item, index) => (
+                      {(service.includes || []).map((item: string, index: number) => (
                         <li key={index} className="flex items-center gap-2">
                           <CheckCircle className="h-5 w-5 text-green-500" />
                           <span>{item}</span>
@@ -169,7 +148,7 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
                   <div>
                     <h3 className="font-semibold mb-2">What's Not Included</h3>
                     <ul className="space-y-2">
-                      {service.excludes.map((item, index) => (
+                      {(service.excludes || []).map((item: string, index: number) => (
                         <li key={index} className="flex items-center gap-2 text-muted-foreground">
                           <span>• {item}</span>
                         </li>
@@ -187,7 +166,7 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
                     <h3 className="font-semibold">Duration</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <Clock className="h-5 w-5 text-muted-foreground" />
-                      <span>{service.duration}</span>
+                      <span>{service.duration ?? "N/A"}</span>
                     </div>
                   </div>
 
@@ -195,14 +174,14 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
                     <h3 className="font-semibold">Group Size</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <Users className="h-5 w-5 text-muted-foreground" />
-                      <span>{service.groupSize}</span>
+                      <span>{service.groupSize ?? "N/A"}</span>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="font-semibold">Categories</h3>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {service.categories.map((category) => (
+                      {(service.categories || []).map((category: string) => (
                         <Badge key={category} variant="secondary">
                           {category}
                         </Badge>
@@ -214,19 +193,19 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
                 <div>
                   <h3 className="font-semibold mb-2">Available Dates</h3>
                   <div className="space-y-2">
-                    {service.availableDates.map((date) => (
-                      <div key={date.date} className="flex justify-between items-center p-2 border rounded-md">
+                    {(service.availableDates || []).map((date: any, idx: number) => (
+                      <div key={date?.date || idx} className="flex justify-between items-center p-2 border rounded-md">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-5 w-5 text-muted-foreground" />
                           <span>
-                            {new Date(date.date).toLocaleDateString("en-US", {
+                            {date?.date ? new Date(date.date).toLocaleDateString("en-US", {
                               weekday: "short",
                               month: "short",
                               day: "numeric",
-                            })}
+                            }) : "N/A"}
                           </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{date.spotsLeft} spots left</span>
+                        <span className="text-sm text-muted-foreground">{date?.spotsLeft ?? "-"} spots left</span>
                       </div>
                     ))}
                   </div>
@@ -264,7 +243,7 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
                 ))}
 
                 <div className="text-center mt-4">
-                  <Link href={`/services/${service.id}/review`}>
+                  <Link href={`/services/${service._id}/review`}>
                     <Button variant="outline">Write a Review</Button>
                   </Link>
                 </div>
@@ -279,7 +258,7 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
           <Card className="sticky top-24">
             <CardContent className="pt-6">
               <div className="flex justify-between items-center mb-4">
-                <div className="text-2xl font-bold">{formatCurrency(service.price)}</div>
+                <div className="text-2xl font-bold">{formatCurrency(service.price ?? 0)}</div>
                 <div className="text-sm text-muted-foreground">per person</div>
               </div>
 
@@ -290,11 +269,11 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-muted-foreground" />
-                  <span>{service.duration}</span>
+                  <span>{service.duration ?? "N/A"}</span>
                 </div>
               </div>
 
-              <Link href={`/booking/${service.id}`}>
+              <Link href={`/booking/${service._id}`}>
                 <Button className="w-full">Book Now</Button>
               </Link>
 
@@ -302,20 +281,20 @@ export function ServiceDetails({ serviceId }: { serviceId: string }) {
                 <h3 className="font-semibold mb-3">About the Provider</h3>
                 <div className="flex items-center gap-3 mb-3">
                   <img
-                    src={service.provider.image || "/placeholder.svg"}
-                    alt={service.provider.name}
+                    src={service.provider?.image || "/placeholder.svg"}
+                    alt={service.provider?.name || "Provider"}
                     className="w-12 h-12 rounded-full"
                   />
                   <div>
-                    <div className="font-medium">{service.provider.name}</div>
+                    <div className="font-medium">{service.provider?.name || "Unknown"}</div>
                     <div className="flex items-center gap-1 text-sm">
                       <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                      <span>{service.provider.rating}</span>
-                      <span className="text-muted-foreground">({service.provider.reviews} reviews)</span>
+                      <span>{service.provider?.rating ?? "N/A"}</span>
+                      <span className="text-muted-foreground">({service.provider?.reviews ?? 0} reviews)</span>
                     </div>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">{service.provider.description}</p>
+                <p className="text-sm text-muted-foreground">{service.provider?.description || ""}</p>
               </div>
             </CardContent>
           </Card>

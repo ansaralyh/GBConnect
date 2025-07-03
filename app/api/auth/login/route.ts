@@ -33,7 +33,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
     const token = jwt.sign({ userId: user._id, email: user.email, userType: user.userType }, JWT_SECRET, { expiresIn: '7d' });
-    return NextResponse.json({ token, user: { email: user.email, userType: user.userType } });
+    return NextResponse.json({
+      token,
+      user: {
+        _id: user._id,
+        email: user.email,
+        userType: user.userType,
+        name: user.name || '',
+        avatar: user.avatar || '',
+        location: user.location || '',
+      }
+    });
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }

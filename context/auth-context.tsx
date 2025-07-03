@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Store token and user
       localStorage.setItem('gbconnect-token', data.token)
       setUser({
-        id: data.user.userId || '',
+        id: data.user._id || data.user.userId || data.user.id || '',
         name: data.user.name || '',
         email: data.user.email,
         role: data.user.userType,
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         location: data.user.location || '',
       })
       localStorage.setItem('gbconnect-user', JSON.stringify({
-        id: data.user.userId || '',
+        id: data.user._id || data.user.userId || data.user.id || '',
         name: data.user.name || '',
         email: data.user.email,
         role: data.user.userType,

@@ -281,13 +281,17 @@ export function SignupForm() {
                         <FormControl>
                           <RadioGroup
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
+                            value={field.value}
                             className="grid grid-cols-2 gap-4"
                           >
                             <FormItem>
                               <FormControl>
                                 <div
                                   className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border p-4 hover:border-primary ${field.value === "tourist" ? "border-2 border-primary bg-primary/5" : ""}`}
+                                  onClick={() => field.onChange("tourist")}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') field.onChange("tourist") }}
                                 >
                                   <RadioGroupItem value="tourist" id="tourist" className="sr-only" />
                                   <UserCircle2 className="mb-2 h-6 w-6 text-primary" />
@@ -301,6 +305,10 @@ export function SignupForm() {
                               <FormControl>
                                 <div
                                   className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border p-4 hover:border-primary ${field.value === "provider" ? "border-2 border-primary bg-primary/5" : ""}`}
+                                  onClick={() => field.onChange("provider")}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') field.onChange("provider") }}
                                 >
                                   <RadioGroupItem value="provider" id="provider" className="sr-only" />
                                   <Building2 className="mb-2 h-6 w-6 text-primary" />

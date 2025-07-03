@@ -33,37 +33,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/auth-context"
 
-// Mock service data for edit mode
-const mockService = {
-  id: "1",
-  title: "Serena Hotel",
-  type: "accommodation",
-  category: "hotel",
-  description:
-    "Luxury hotel with stunning mountain views and excellent service. Located in the heart of Gilgit City, Serena Hotel offers a perfect blend of traditional architecture and modern amenities.",
-  location: "Gilgit City",
-  price: 200,
-  priceUnit: "night",
-  images: [
-    "/images/fyp.pic8.jpeg",
-    "/images/fyp.pic9.jpg",
-    "/images/fyp.pic10.jpg",
-  ],
-  amenities: ["wifi", "parking", "restaurant"],
-  availability: {
-    startDate: "2023-12-01",
-    endDate: "2024-12-31",
-    availableDays: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"],
-    startTime: "14:00",
-    endTime: "12:00",
-  },
-  policies: {
-    cancellation: "Free cancellation up to 7 days before check-in. Partial refund up to 3 days before check-in.",
-    houseRules: "No smoking, no parties or events, pets not allowed.",
-  },
-  status: "active",
-}
-
 const serviceFormSchema = z.object({
   title: z.string().min(3, { message: "Title must be at least 3 characters" }),
   type: z.string({ required_error: "Please select a service type" }),
@@ -122,43 +91,59 @@ export function ServiceForm({ mode, serviceId }: { mode: "create" | "edit"; serv
     // If in edit mode, fetch service data
     if (mode === "edit" && serviceId) {
       setIsLoading(true)
-      // Simulate API call
-      setTimeout(() => {
-        // Populate form with mock data
-        form.reset({
-          title: mockService.title,
-          type: mockService.type,
-          category: mockService.category,
-          description: mockService.description,
-          location: mockService.location,
-          price: mockService.price,
-          priceUnit: mockService.priceUnit,
-          amenities: mockService.amenities,
-          startDate: mockService.availability.startDate,
-          endDate: mockService.availability.endDate,
-          availableDays: mockService.availability.availableDays,
-          startTime: mockService.availability.startTime,
-          endTime: mockService.availability.endTime,
-          cancellationPolicy: mockService.policies.cancellation,
-          houseRules: mockService.policies.houseRules,
-          status: mockService.status as "draft" | "active" | "inactive",
+      fetch(`/api/services/${serviceId}`)
+        .then(async (res) => {
+          if (!res.ok) throw new Error("Failed to fetch service data")
+          const data = await res.json()
+          form.reset({
+            title: data.title || "",
+            type: data.type || "",
+            category: data.category || "",
+            description: data.description || "",
+            location: data.location || "",
+            price: data.price || 0,
+            priceUnit: data.priceUnit || "night",
+            amenities: data.amenities || [],
+            startDate: data.availability?.startDate || "",
+            endDate: data.availability?.endDate || "",
+            availableDays: data.availability?.availableDays || [],
+            startTime: data.availability?.startTime || "",
+            endTime: data.availability?.endTime || "",
+            cancellationPolicy: data.policies?.cancellation || "",
+            houseRules: data.policies?.houseRules || "",
+            status: data.status || "draft",
+          })
+          setImages(data.images || [])
         })
-        setImages(mockService.images)
-        setIsLoading(false)
-      }, 1000)
+        .catch(() => {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load service data. Please try again.",
+          })
+        })
+        .finally(() => setIsLoading(false))
     }
-  }, [user, router, mode, serviceId, form])
+  }, [user, router, mode, serviceId, form, toast])
 
   const handleLogout = () => {
     logout()
     router.push("/")
   }
 
-  const handleImageUpload = () => {
-    // Simulate image upload
-    const newImage = "/placeholder.svg?height=600&width=800"
-    setImages([...images, newImage])
-  }
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setImages((prev) => [...prev, event.target!.result as string]);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
 
   const handleRemoveImage = (index: number) => {
     const newImages = [...images]
@@ -167,37 +152,65 @@ export function ServiceForm({ mode, serviceId }: { mode: "create" | "edit"; serv
   }
 
   async function onSubmit(values: z.infer<typeof serviceFormSchema>) {
-    setIsLoading(true)
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
+    if (!user?.id) {
       toast({
-        title: mode === "create" ? "Service created" : "Service updated",
-        description:
-          mode === "create"
-            ? "Your service has been created successfully."
-            : "Your service has been updated successfully.",
-      })
-
-      // Redirect to services list
-      router.push("/dashboard/provider/services")
+        variant: "destructive",
+        title: "Error",
+        description: "User not loaded. Please log in again.",
+      });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      if (mode === "create") {
+        const res = await fetch("/api/services", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...values,
+            images,
+            providerId: user.id,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to create service");
+        toast({
+          title: "Service created",
+          description: "Your service has been created successfully.",
+        });
+        router.push("/dashboard/provider");
+      } else {
+        // Actually update the service in the backend
+        const res = await fetch(`/api/services/${serviceId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...values,
+            images,
+            providerId: user.id,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update service");
+        toast({
+          title: "Service updated",
+          description: "Your service has been updated successfully."
+        });
+        router.push("/dashboard/provider/services");
+      }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description:
-          mode === "create"
-            ? "Failed to create service. Please try again."
-            : "Failed to update service. Please try again.",
-      })
+        description: mode === "create" ? "Failed to create service. Please try again." : "Failed to update service. Please try again."
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
   if (!user) {
-    return null
+    return null;
   }
 
   return (
@@ -473,40 +486,36 @@ export function ServiceForm({ mode, serviceId }: { mode: "create" | "edit"; serv
                     <CardDescription>Upload images of your service to attract customers.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-                        {images.map((image, index) => (
-                          <div key={index} className="group relative aspect-square overflow-hidden rounded-md border">
+                    <div>
+                      <FormLabel>Images</FormLabel>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="mb-2"
+                      />
+                      <div className="flex flex-wrap gap-2">
+                        {images.map((img, idx) => (
+                          <div key={idx} className="relative w-24 h-24">
                             <Image
-                              src={image || "/placeholder.svg"}
-                              alt={`Service image ${index + 1}`}
+                              src={img}
+                              alt={`Service image ${idx + 1}`}
                               fill
-                              className="object-cover"
+                              className="object-cover rounded"
                             />
-                            <button
+                            <Button
                               type="button"
-                              onClick={() => handleRemoveImage(index)}
-                              className="absolute right-2 top-2 rounded-full bg-black/50 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                              size="icon"
+                              variant="destructive"
+                              className="absolute top-1 right-1"
+                              onClick={() => handleRemoveImage(idx)}
                             >
                               <X className="h-4 w-4" />
-                              <span className="sr-only">Remove image</span>
-                            </button>
+                            </Button>
                           </div>
                         ))}
-                        <button
-                          type="button"
-                          onClick={handleImageUpload}
-                          className="flex aspect-square items-center justify-center rounded-md border border-dashed text-muted-foreground hover:bg-muted"
-                        >
-                          <div className="flex flex-col items-center gap-1">
-                            <Upload className="h-8 w-8" />
-                            <span className="text-xs">Upload</span>
-                          </div>
-                        </button>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Upload high-quality images. The first image will be used as the cover image.
-                      </p>
                     </div>
                   </CardContent>
                 </Card>
@@ -828,7 +837,7 @@ export function ServiceForm({ mode, serviceId }: { mode: "create" | "edit"; serv
                   <Button type="button" variant="outline" asChild>
                     <Link href="/dashboard/provider/services">Cancel</Link>
                   </Button>
-                  <Button type="submit" disabled={isLoading}>
+                  <Button type="submit" disabled={isLoading || !user?.id}>
                     {isLoading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -47,125 +47,79 @@ import {
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/auth-context"
 
-// Mock services data
-const mockServices = [
-  {
-    id: "1",
-    title: "Serena Hotel",
-    type: "accommodation",
-    location: "Gilgit City",
-    price: "$200/night",
-    status: "active",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 245,
-    bookings: 12,
-    rating: 4.8,
-    createdAt: "2023-10-15",
-  },
-  {
-    id: "2",
-    title: "Family Suite",
-    type: "accommodation",
-    location: "Hunza Valley",
-    price: "$350/night",
-    status: "active",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 180,
-    bookings: 8,
-    rating: 4.7,
-    createdAt: "2023-11-02",
-  },
-  {
-    id: "3",
-    title: "Standard Room",
-    type: "accommodation",
-    location: "Skardu",
-    price: "$120/night",
-    status: "inactive",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 95,
-    bookings: 3,
-    rating: 4.5,
-    createdAt: "2023-09-20",
-  },
-  {
-    id: "4",
-    title: "Mountain View Restaurant",
-    type: "food",
-    location: "Hunza Valley",
-    price: "$$",
-    status: "active",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 320,
-    bookings: 45,
-    rating: 4.6,
-    createdAt: "2023-08-15",
-  },
-  {
-    id: "5",
-    title: "Jeep Tour to Fairy Meadows",
-    type: "tours",
-    location: "Fairy Meadows",
-    price: "$150/person",
-    status: "draft",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 0,
-    bookings: 0,
-    rating: 0,
-    createdAt: "2023-12-01",
-  },
-]
-
 export function ServiceManagement() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(true)
-  const [services, setServices] = useState(mockServices)
+  const [services, setServices] = useState<any[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [serviceToDelete, setServiceToDelete] = useState<string | null>(null)
 
+  // Fetch services from backend
+  const fetchServices = async () => {
+    if (!user?.id) return
+    setIsLoading(true)
+    try {
+      let url = `/api/services/provider?providerId=${user.id}`
+      const res = await fetch(url)
+      let data = await res.json()
+      if (!Array.isArray(data)) data = []
+      setServices(data)
+    } catch (err) {
+      setServices([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   useEffect(() => {
-    // Check if user is authenticated and is a provider
     if (!user || user.role !== "provider") {
       router.push("/login")
       return
     }
-
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [user, router])
+    fetchServices()
+    // eslint-disable-next-line
+  }, [user])
 
   const handleLogout = () => {
     logout()
     router.push("/")
   }
 
-  const handleDeleteService = (id: string) => {
+  const handleDeleteService = async (id: string) => {
     setServiceToDelete(id)
     setDeleteDialogOpen(true)
   }
 
-  const confirmDelete = () => {
-    if (serviceToDelete) {
-      // Filter out the service to delete
-      const updatedServices = services.filter((service) => service.id !== serviceToDelete)
-      setServices(updatedServices)
-
-      toast({
-        title: "Service deleted",
-        description: "The service has been deleted successfully.",
+  const confirmDelete = async () => {
+    if (!serviceToDelete || !user?.id) return
+    setIsLoading(true)
+    try {
+      const res = await fetch(`/api/services/${serviceToDelete}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerId: user.id }),
       })
-
+      if (!res.ok) {
+        let errorMsg = "Failed to delete service"
+        try {
+          const data = await res.json()
+          errorMsg = data.error || errorMsg
+        } catch {}
+        throw new Error(errorMsg)
+      }
+      setServices((prev) => prev.filter((s) => s._id !== serviceToDelete))
+      toast({ title: "Service deleted", description: "The service has been deleted successfully." })
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Error", description: err.message || "Failed to delete service." })
+    } finally {
       setDeleteDialogOpen(false)
       setServiceToDelete(null)
+      setIsLoading(false)
     }
   }
 
@@ -191,24 +145,26 @@ export function ServiceManagement() {
     }
   }
 
-  const handleToggleStatus = (id: string) => {
-    const updatedServices = services.map((service) => {
-      if (service.id === id) {
-        const newStatus = service.status === "active" ? "inactive" : "active"
-        return { ...service, status: newStatus }
-      }
-      return service
-    })
-
-    setServices(updatedServices)
-
-    const service = services.find((s) => s.id === id)
-    const newStatus = service?.status === "active" ? "inactive" : "active"
-
-    toast({
-      title: `Service ${newStatus === "active" ? "activated" : "deactivated"}`,
-      description: `The service has been ${newStatus === "active" ? "activated" : "deactivated"} successfully.`,
-    })
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    if (!user?.id) return
+    setIsLoading(true)
+    try {
+      const service = services.find((s) => s._id === id)
+      if (!service) return
+      const updatedStatus = currentStatus === "active" ? "inactive" : "active"
+      const res = await fetch(`/api/services/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...service, status: updatedStatus, providerId: user.id }),
+      })
+      if (!res.ok) throw new Error("Failed to update status")
+      setServices((prev) => prev.map((s) => (s._id === id ? { ...s, status: updatedStatus } : s)))
+      toast({ title: "Status updated", description: `Service is now ${updatedStatus}.` })
+    } catch (err) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update status." })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Filter services based on search query and filters
@@ -388,7 +344,7 @@ export function ServiceManagement() {
                       <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr]">
                         <div className="relative h-full">
                           <Image
-                            src={service.image || "/placeholder.svg"}
+                            src={service.images?.[0] || "/placeholder.svg"}
                             alt={service.title}
                             fill
                             className="object-cover"
@@ -407,7 +363,7 @@ export function ServiceManagement() {
                                       : "bg-gray-500 hover:bg-gray-600"
                                 }
                               >
-                                {service.status.charAt(0).toUpperCase() + service.status.slice(1)}
+                                {service.status ? service.status.charAt(0).toUpperCase() + service.status.slice(1) : "Unknown"}
                               </Badge>
                             </div>
                             <DropdownMenu>
@@ -419,13 +375,13 @@ export function ServiceManagement() {
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
                                 <DropdownMenuItem asChild>
-                                  <Link href={`/services/${service.id}`}>
+                                  <Link href={`/services/${service._id}`}>
                                     <Eye className="mr-2 h-4 w-4" />
                                     View
                                   </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                  <Link href={`/dashboard/provider/services/${service.id}/edit`}>
+                                  <Link href={`/dashboard/provider/services/${service._id}/edit`}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit
                                   </Link>
@@ -436,7 +392,7 @@ export function ServiceManagement() {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
-                                  onClick={() => handleToggleStatus(service.id)}
+                                  onClick={() => handleToggleStatus(service.id, service.status)}
                                   className={
                                     service.status === "active"
                                       ? "text-amber-600 hover:text-amber-700"
@@ -474,10 +430,10 @@ export function ServiceManagement() {
                           </div>
                           <div className="mt-3 flex justify-end gap-2">
                             <Button variant="outline" size="sm" asChild>
-                              <Link href={`/dashboard/provider/services/${service.id}/edit`}>Edit</Link>
+                              <Link href={`/dashboard/provider/services/${service._id}/edit`}>Edit</Link>
                             </Button>
                             <Button size="sm" asChild>
-                              <Link href={`/services/${service.id}`}>View</Link>
+                              <Link href={`/services/${service._id}`}>View</Link>
                             </Button>
                           </div>
                         </div>

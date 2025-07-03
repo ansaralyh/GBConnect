@@ -15,191 +15,14 @@ import { useAuth } from "@/context/auth-context"
 import { BusinessAnalytics } from "@/components/dashboard/business-analytics"
 import { formatCurrency } from "@/lib/utils"
 
-// Mock data
-const bookings = [
-  {
-    id: "booking-1",
-    service: {
-      id: "1",
-      title: "Deluxe Room",
-      type: "accommodation",
-      image: "/placeholder.svg?height=100&width=100",
-    },
-    customer: {
-      name: "John Smith",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    checkIn: "2023-12-15",
-    checkOut: "2023-12-18",
-    guests: 2,
-    status: "pending",
-    totalPrice: "$600",
-  },
-  {
-    id: "booking-2",
-    service: {
-      id: "2",
-      title: "Family Suite",
-      type: "accommodation",
-      image: "/placeholder.svg?height=100&width=100",
-    },
-    customer: {
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    checkIn: "2023-12-20",
-    checkOut: "2023-12-25",
-    guests: 4,
-    status: "confirmed",
-    totalPrice: "$1000",
-  },
-]
-
-const services = [
-  {
-    id: "1",
-    title: "Deluxe Room",
-    type: "accommodation",
-    price: "$200/night",
-    status: "active",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 245,
-    bookings: 12,
-    rating: 4.8,
-  },
-  {
-    id: "2",
-    title: "Family Suite",
-    type: "accommodation",
-    price: "$350/night",
-    status: "active",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 180,
-    bookings: 8,
-    rating: 4.7,
-  },
-  {
-    id: "3",
-    title: "Standard Room",
-    type: "accommodation",
-    price: "$120/night",
-    status: "inactive",
-    image: "/placeholder.svg?height=100&width=100",
-    views: 95,
-    bookings: 3,
-    rating: 4.5,
-  },
-]
-
-const reviews = [
-  {
-    id: "review-1",
-    service: "Deluxe Room",
-    customer: {
-      name: "John Smith",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    rating: 5,
-    date: "2 days ago",
-    comment:
-      "Amazing room with stunning views. The service was excellent and the staff was very friendly. Would definitely stay here again!",
-  },
-  {
-    id: "review-2",
-    service: "Family Suite",
-    customer: {
-      name: "Sarah Johnson",
-      avatar: "/placeholder.svg?height=40&width=40",
-    },
-    rating: 4,
-    date: "1 week ago",
-    comment:
-      "Great room for families. Spacious and comfortable. The only downside was that the Wi-Fi was a bit slow at times.",
-  },
-]
-
-const notifications = [
-  {
-    id: "notification-1",
-    type: "message",
-    content: "New message from John Smith",
-    time: "2 hours ago",
-    read: false,
-  },
-  {
-    id: "notification-2",
-    type: "booking",
-    content: "New booking confirmed",
-    time: "Yesterday",
-    read: false,
-  },
-  {
-    id: "notification-3",
-    type: "review",
-    content: "New 5-star review received",
-    time: "2 days ago",
-    read: true,
-  },
-]
-
-// Mock data for recent bookings
-const recentBookings = [
-  {
-    id: "b1",
-    serviceName: "Hunza Valley Tour",
-    customerName: "Asad Khan",
-    date: "2024-05-15",
-    status: "confirmed",
-    amount: 45000,
-  },
-  {
-    id: "b2",
-    serviceName: "Fairy Meadows Trek",
-    customerName: "Fatima Ahmed",
-    date: "2024-05-18",
-    status: "pending",
-    amount: 38000,
-  },
-  {
-    id: "b3",
-    serviceName: "Skardu Adventure",
-    customerName: "Imran Ali",
-    date: "2024-05-22",
-    status: "confirmed",
-    amount: 52000,
-  },
-]
-
-// Mock data for recent messages
-const recentMessages = [
-  {
-    id: "m1",
-    from: "Asad Khan",
-    message: "Is the tour still available for next week?",
-    time: "2 hours ago",
-    unread: true,
-  },
-  {
-    id: "m2",
-    from: "Fatima Ahmed",
-    message: "Do you provide transportation from Islamabad?",
-    time: "5 hours ago",
-    unread: true,
-  },
-  {
-    id: "m3",
-    from: "Imran Ali",
-    message: "Thanks for the great service!",
-    time: "1 day ago",
-    unread: false,
-  },
-]
-
 export function ProviderDashboard() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
+  const [services, setServices] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [totalServices, setTotalServices] = useState(0)
 
   useEffect(() => {
     // Check if user is authenticated
@@ -216,10 +39,60 @@ export function ProviderDashboard() {
     return () => clearTimeout(timer)
   }, [user, router])
 
+  useEffect(() => {
+    if (!user) return;
+    const fetchServices = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/services/provider?providerId=${user.id}`);
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setServices(data);
+          setTotalServices(data.length);
+        } else {
+          setServices([]);
+          setTotalServices(0);
+        }
+      } catch (err) {
+        setServices([]);
+        setTotalServices(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, [user]);
+
   const handleLogout = () => {
     logout()
     router.push("/")
   }
+
+  // Handle edit
+  const handleEditService = (service: any) => {
+    router.push(`/dashboard/provider/services/${service._id}/edit`);
+  };
+
+  // Handle delete
+  const handleDeleteService = async (service: any) => {
+    if (!user) return;
+    if (!window.confirm("Are you sure you want to delete this service?")) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/services/${service._id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerId: user.id }),
+      });
+      if (!res.ok) throw new Error("Failed to delete service");
+      setServices((prev) => prev.filter((s) => s._id !== service._id));
+      setTotalServices((prev) => prev - 1);
+    } catch (err) {
+      alert("Error deleting service");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!user || user.role !== "provider") {
     return (
@@ -240,272 +113,196 @@ export function ProviderDashboard() {
   }
 
   return (
-    <div className="container py-8">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user.name}</h1>
-          <p className="text-muted-foreground">Here's what's happening with your business today.</p>
-        </div>
-        <div className="mt-4 md:mt-0 space-x-2">
-          <Button asChild>
-            <Link href="/dashboard/provider/services/new">
-              <Plus className="mr-2 h-4 w-4" /> Add New Service
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Services</CardTitle>
-                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">8</div>
-                <p className="text-xs text-muted-foreground">+2 added this month</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Bookings</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground">+4 since yesterday</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(345000)}</div>
-                <p className="text-xs text-muted-foreground">+18% from last month</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
-                <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">5</div>
-                <p className="text-xs text-muted-foreground">New inquiries</p>
-              </CardContent>
-            </Card>
+    <div className="flex">
+      {/* Sidebar */}
+      <aside className="hidden md:flex flex-col w-56 min-h-screen bg-muted/40 border-r mr-8 p-6">
+        <nav className="flex flex-col gap-4">
+          <Link href="/dashboard/provider" className="font-medium text-base hover:text-primary">Dashboard</Link>
+          <Link href="/dashboard/provider/services" className="font-medium text-base hover:text-primary">Services</Link>
+          <Link href="/dashboard/provider/settings" className="font-medium text-base hover:text-primary">Settings</Link>
+        </nav>
+      </aside>
+      {/* Main Content */}
+      <div className="flex-1">
+        <div className="container py-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user.name}</h1>
+              <p className="text-muted-foreground">Here's what's happening with your business today.</p>
+            </div>
+            <div className="mt-4 md:mt-0 space-x-2">
+              <Button asChild>
+                <Link href="/dashboard/provider/services/new">
+                  <Plus className="mr-2 h-4 w-4" /> Add New Service
+                </Link>
+              </Button>
+            </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Bookings</CardTitle>
-              <CardDescription>Your latest booking requests</CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2 pb-4">
-              <div className="overflow-auto">
-                <table className="w-full table-auto text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="py-2 text-left font-semibold">Service</th>
-                      <th className="py-2 text-left font-semibold">Customer</th>
-                      <th className="py-2 text-left font-semibold">Date</th>
-                      <th className="py-2 text-left font-semibold">Amount</th>
-                      <th className="py-2 text-left font-semibold">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentBookings.map((booking) => (
-                      <tr key={booking.id} className="border-b">
-                        <td className="py-2">{booking.serviceName}</td>
-                        <td className="py-2">{booking.customerName}</td>
-                        <td className="py-2">{booking.date}</td>
-                        <td className="py-2">{formatCurrency(booking.amount)}</td>
-                        <td className="py-2">
-                          <Badge variant={booking.status === "confirmed" ? "success" : "secondary"}>
-                            {booking.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="messages">Messages</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Services</CardTitle>
+                    <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{totalServices}</div>
+                    <p className="text-xs text-muted-foreground">&nbsp;</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Pending Bookings</CardTitle>
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">0</div>
+                    <p className="text-xs text-muted-foreground">&nbsp;</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">Rs 0</div>
+                    <p className="text-xs text-muted-foreground">&nbsp;</p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">0</div>
+                    <p className="text-xs text-muted-foreground">&nbsp;</p>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-            <CardFooter>
-              <Button asChild variant="ghost" className="ml-auto">
-                <Link href="/dashboard/provider/bookings">View All</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="analytics">
-          <BusinessAnalytics />
-        </TabsContent>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Bookings</CardTitle>
+                  <CardDescription>Your latest booking requests</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2 pb-4">
+                  <div className="text-muted-foreground text-center py-4">No booking data yet</div>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild variant="ghost" className="ml-auto">
+                    <Link href="/dashboard/provider/bookings">View All</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
 
-        <TabsContent value="bookings">
-          {/* Booking Management */}
-          <section>
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                  <div>
-                    <CardTitle>Booking Management</CardTitle>
-                    <CardDescription>Manage your upcoming and pending bookings</CardDescription>
-                  </div>
-                  <Tabs defaultValue="pending">
-                    <TabsList>
-                      <TabsTrigger value="pending">Pending</TabsTrigger>
-                      <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                      <TabsTrigger value="past">Past</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {bookings.map((booking) => (
-                    <div key={booking.id} className="rounded-lg border">
-                      <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr]">
-                        <div className="relative h-full">
-                          <Image
-                            src={booking.service.image || "/placeholder.svg"}
-                            alt={booking.service.title}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="p-4">
-                          <div className="mb-1 flex items-center justify-between">
-                            <div>
-                              <h3 className="font-semibold">{booking.service.title}</h3>
-                              <p className="text-sm text-muted-foreground">Booking #{booking.id}</p>
-                            </div>
-                            <Badge
-                              className={
-                                booking.status === "confirmed"
-                                  ? "bg-green-500 hover:bg-green-600"
-                                  : "bg-yellow-500 hover:bg-yellow-600"
-                              }
-                            >
-                              {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                            </Badge>
-                          </div>
-                          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                            <div className="flex items-center">
-                              <Calendar className="mr-1 h-3 w-3" />
-                              <span>
-                                {new Date(booking.checkIn).toLocaleDateString()} -{" "}
-                                {new Date(booking.checkOut).toLocaleDateString()} (
-                                {(new Date(booking.checkOut).getTime() - new Date(booking.checkIn).getTime()) /
-                                  (1000 * 60 * 60 * 24)}{" "}
-                                nights)
-                              </span>
-                            </div>
-                            <div className="flex items-center">
-                              <Users className="mr-1 h-3 w-3" />
-                              <span>{booking.guests} guests</span>
-                            </div>
-                          </div>
-                          <div className="mt-2 flex items-center gap-2">
-                            <Avatar className="h-6 w-6">
-                              <AvatarImage
-                                src={booking.customer.avatar || "/placeholder.svg"}
-                                alt={booking.customer.name}
-                              />
-                              <AvatarFallback>{booking.customer.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{booking.customer.name}</span>
-                          </div>
-                          <div className="mt-3 flex justify-end gap-2">
-                            {booking.status === "pending" ? (
-                              <>
-                                <Button variant="outline" size="sm" className="gap-1">
-                                  <X className="h-4 w-4" />
-                                  Decline
-                                </Button>
-                                <Button size="sm" className="gap-1">
-                                  <Check className="h-4 w-4" />
-                                  Confirm
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button variant="outline" size="sm">
-                                  Message Guest
-                                </Button>
-                                <Button size="sm">View Details</Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
+            <TabsContent value="analytics">
+              <BusinessAnalytics />
+            </TabsContent>
+
+            <TabsContent value="bookings">
+              {/* Booking Management */}
+              <section>
+                <Card>
+                  <CardHeader>
+                    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                      <div>
+                        <CardTitle>Booking Management</CardTitle>
+                        <CardDescription>Manage your upcoming and pending bookings</CardDescription>
                       </div>
+                      <Tabs defaultValue="pending">
+                        <TabsList>
+                          <TabsTrigger value="pending">Pending</TabsTrigger>
+                          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+                          <TabsTrigger value="past">Past</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="ghost" size="sm" asChild className="ml-auto gap-1">
-                  <Link href="/dashboard/provider/bookings">
-                    View all bookings
-                    <ChevronRight className="h-4 w-4" />
-                  </Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          </section>
-        </TabsContent>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-muted-foreground text-center py-4">No booking data yet</div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button variant="ghost" size="sm" asChild className="ml-auto gap-1">
+                      <Link href="/dashboard/provider/bookings">
+                        View all bookings
+                        <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </section>
+            </TabsContent>
 
-        <TabsContent value="messages">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Messages</CardTitle>
-              <CardDescription>Your latest messages from customers</CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2 pb-4">
-              <div className="overflow-auto">
-                <table className="w-full table-auto text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="py-2 text-left font-semibold">From</th>
-                      <th className="py-2 text-left font-semibold">Message</th>
-                      <th className="py-2 text-left font-semibold">Time</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentMessages.map((message) => (
-                      <tr key={message.id} className="border-b">
-                        <td className="py-2">{message.from}</td>
-                        <td className="py-2">{message.message}</td>
-                        <td className="py-2">{message.time}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button asChild variant="ghost" className="ml-auto">
-                <Link href="/dashboard/provider/messages">View All</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="messages">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Messages</CardTitle>
+                  <CardDescription>Your latest messages from customers</CardDescription>
+                </CardHeader>
+                <CardContent className="pl-2 pb-4">
+                  <div className="text-muted-foreground text-center py-4">No message data yet</div>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild variant="ghost" className="ml-auto">
+                    <Link href="/dashboard/provider/messages">View All</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold mt-5">My Services</h2>
+            
+          </div>
+          {loading ? (
+            <div>Loading services...</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.isArray(services) && services.map((service) => (
+                <Card key={service._id}>
+                  <CardHeader>
+                    <CardTitle>{service.title}</CardTitle>
+                    <CardDescription>{service.category}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-2">{service.description}</div>
+                    <div className="mb-2 font-semibold">Price: {service.price}</div>
+                    <div className="mb-2">Location: {service.location}</div>
+                    {/* Images preview */}
+                    {service.images && service.images.length > 0 && (
+                      <div className="flex gap-2">
+                        {service.images.map((img: string, idx: number) => (
+                          <Image key={idx} src={img} alt="Service Image" width={60} height={60} className="rounded" />
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter className="flex gap-2">
+                    <Button variant="outline" onClick={() => handleEditService(service)}>Edit</Button>
+                    <Button variant="destructive" onClick={() => handleDeleteService(service)} disabled={!user}>Delete</Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

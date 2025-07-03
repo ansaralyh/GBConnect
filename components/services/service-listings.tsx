@@ -736,7 +736,7 @@ export function ServiceListings() {
                       <Card className="h-full hover:shadow-lg transition-shadow duration-300">
                         <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
                           <img
-                            src={service.image || "/placeholder.svg"}
+                            src={service.images?.[0] || "/placeholder.svg"}
                             alt={service.title}
                             className="object-cover w-full h-full"
                           />
@@ -777,7 +777,7 @@ export function ServiceListings() {
                       <div className="grid grid-cols-1 md:grid-cols-[240px_1fr]">
                         <div className="relative h-48 md:h-full">
                           <Image
-                            src={service.image || "/placeholder.svg"}
+                            src={service.images?.[0] || "/placeholder.svg"}
                             alt={service.title}
                             fill
                             className="object-cover"

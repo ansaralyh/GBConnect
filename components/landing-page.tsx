@@ -196,7 +196,7 @@ export function LandingPage() {
                     <Card key={service.id} className="service-card overflow-hidden">
                       <div className="relative h-48">
                         <Image
-                          src={service.image || "/placeholder.svg"}
+                          src={service.images?.[0] || "/placeholder.svg"}
                           alt={service.title}
                           fill
                           className="object-cover"
