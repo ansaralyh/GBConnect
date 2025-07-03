@@ -4,7 +4,7 @@ export default function BookingConfirmationPage({ params }: { params: { id: stri
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1">
-        <BookingConfirmation serviceId={params.id} />
+        <BookingConfirmation bookingId={params.id} />
       </main>
     </div>
   )

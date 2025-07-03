@@ -23,6 +23,8 @@ export function ProviderDashboard() {
   const [services, setServices] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [totalServices, setTotalServices] = useState(0)
+  const [bookings, setBookings] = useState<any[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(false)
 
   useEffect(() => {
     // Check if user is authenticated
@@ -61,6 +63,19 @@ export function ProviderDashboard() {
       }
     };
     fetchServices();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    setLoadingBookings(true);
+    fetch(`/api/bookings?providerId=${user.id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch bookings');
+        const data = await res.json();
+        setBookings(data);
+      })
+      .catch(() => setBookings([]))
+      .finally(() => setLoadingBookings(false));
   }, [user]);
 
   const handleLogout = () => {
@@ -200,7 +215,29 @@ export function ProviderDashboard() {
                   <CardDescription>Your latest booking requests</CardDescription>
                 </CardHeader>
                 <CardContent className="pl-2 pb-4">
-                  <div className="text-muted-foreground text-center py-4">No booking data yet</div>
+                  {loadingBookings ? (
+                    <div className="text-center py-4">Loading bookings...</div>
+                  ) : bookings.length === 0 ? (
+                    <div className="text-muted-foreground text-center py-4">No booking data yet</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {bookings.slice(0, 3).map((booking) => (
+                        <div key={booking.id} className="flex items-center gap-3 border-b pb-2 last:border-b-0 last:pb-0">
+                          <Image
+                            src={booking.service?.images?.[0] || "/placeholder.svg"}
+                            alt={booking.service?.title || "Service"}
+                            width={32}
+                            height={32}
+                            className="rounded"
+                          />
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{booking.service?.title || "Service"}</div>
+                            <div className="text-xs text-muted-foreground">Guest: {booking.userId} &bull; {booking.status}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button asChild variant="ghost" className="ml-auto">
@@ -234,7 +271,37 @@ export function ProviderDashboard() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-muted-foreground text-center py-4">No booking data yet</div>
+                    {loadingBookings ? (
+                      <div className="text-center py-4">Loading bookings...</div>
+                    ) : bookings.length === 0 ? (
+                      <div className="text-muted-foreground text-center py-4">No booking data yet</div>
+                    ) : (
+                      <div className="space-y-4">
+                        {bookings.map((booking) => (
+                          <div key={booking.id} className="border rounded p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                              <Image
+                                src={booking.service?.images?.[0] || "/placeholder.svg"}
+                                alt={booking.service?.title || "Service"}
+                                width={48}
+                                height={48}
+                                className="rounded"
+                              />
+                              <div>
+                                <div className="font-semibold">{booking.service?.title || "Service"}</div>
+                                <div className="text-xs text-muted-foreground">{booking.status}</div>
+                                <div className="text-xs">{booking.checkIn ? new Date(booking.checkIn).toLocaleDateString() : ""} - {booking.checkOut ? new Date(booking.checkOut).toLocaleDateString() : ""}</div>
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              <div className="text-sm">Guest: {booking.userId}</div>
+                              <div className="text-sm">Guests: {booking.guests}</div>
+                              <div className="text-sm font-semibold">Total: {booking.totalPrice}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                   <CardFooter>
                     <Button variant="ghost" size="sm" asChild className="ml-auto gap-1">

@@ -13,73 +13,34 @@ import { MainNav } from "@/components/main-nav"
 import { Footer } from "@/components/footer"
 import { useAuth } from "@/context/auth-context"
 
-// Mock service data
-const mockServices = [
-  {
-    id: "1",
-    title: "Serena Hotel",
-    type: "accommodation",
-    location: "Gilgit City",
-    price: 200,
-    rating: 4.8,
-    reviewCount: 124,
-    image: "/placeholder.svg?height=300&width=400",
-    description: "Luxury hotel with stunning mountain views and excellent service.",
-    provider: {
-      id: "provider-1",
-      name: "Serena Hotels",
-      avatar: "/placeholder.svg?height=50&width=50",
-    },
-  },
-  {
-    id: "2",
-    title: "Mountain View Restaurant",
-    type: "food",
-    location: "Hunza Valley",
-    price: 50,
-    rating: 4.5,
-    reviewCount: 86,
-    image: "/placeholder.svg?height=300&width=400",
-    description: "Traditional cuisine with panoramic views of the Hunza Valley.",
-    provider: {
-      id: "provider-2",
-      name: "Hunza Hospitality",
-      avatar: "/placeholder.svg?height=50&width=50",
-    },
-  },
-]
-
-export function BookingConfirmation({ serviceId }: { serviceId: string }) {
+export function BookingConfirmation({ bookingId }: { bookingId: string }) {
   const router = useRouter()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
-  const [bookingDetails, setBookingDetails] = useState({
-    bookingId: "GB-" + Math.floor(100000 + Math.random() * 900000),
-    checkIn: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // 7 days from now
-    checkOut: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // 10 days from now
-    guests: 2,
-    nights: 3,
-    status: "confirmed",
-    createdAt: new Date().toISOString(),
-  })
+  const [booking, setBooking] = useState<any>(null)
 
-  // Find the service by ID
-  const service = mockServices.find((s) => s.id === serviceId) || mockServices[0]
+  useEffect(() => {
+    setIsLoading(true)
+    fetch(`/api/bookings/${bookingId}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch booking")
+        const data = await res.json()
+        setBooking(data)
+      })
+      .catch(() => setBooking(null))
+      .finally(() => setIsLoading(false))
+  }, [bookingId])
+
+  if (isLoading) return <div className="p-8 text-center">Loading booking...</div>
+  if (!booking) return <div className="p-8 text-center text-red-500">Booking not found.</div>
+  const service = booking.service || {}
 
   // Calculate prices
-  const subtotal = service.price * bookingDetails.nights
+  const nights = booking.checkIn && booking.checkOut ? Math.ceil((new Date(booking.checkOut).getTime() - new Date(booking.checkIn).getTime()) / (1000 * 60 * 60 * 24)) : 1
+  const subtotal = service.price ? service.price * nights : 0
   const serviceFee = Math.round(subtotal * 0.1)
   const taxes = Math.round(subtotal * 0.05)
   const total = subtotal + serviceFee + taxes
-
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
-  }, [])
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -126,7 +87,7 @@ export function BookingConfirmation({ serviceId }: { serviceId: string }) {
                   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div>
                       <h2 className="text-lg font-semibold">Booking Reference</h2>
-                      <p className="text-2xl font-bold text-primary">{bookingDetails.bookingId}</p>
+                      <p className="text-2xl font-bold text-primary">{booking.bookingId}</p>
                     </div>
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="gap-1">
@@ -176,21 +137,21 @@ export function BookingConfirmation({ serviceId }: { serviceId: string }) {
                             <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">Check-in</span>
                           </div>
-                          <span className="text-sm">{new Date(bookingDetails.checkIn).toLocaleDateString()}</span>
+                          <span className="text-sm">{new Date(booking.checkIn).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
                             <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">Check-out</span>
                           </div>
-                          <span className="text-sm">{new Date(bookingDetails.checkOut).toLocaleDateString()}</span>
+                          <span className="text-sm">{new Date(booking.checkOut).toLocaleDateString()}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
                             <Users className="mr-2 h-4 w-4 text-muted-foreground" />
                             <span className="text-sm font-medium">Guests</span>
                           </div>
-                          <span className="text-sm">{bookingDetails.guests}</span>
+                          <span className="text-sm">{booking.guests}</span>
                         </div>
                       </div>
                     </div>
@@ -203,7 +164,7 @@ export function BookingConfirmation({ serviceId }: { serviceId: string }) {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">
-                          ${service.price} x {bookingDetails.nights} nights
+                          ${service.price} x {nights} nights
                         </span>
                         <span className="text-sm">${subtotal}</span>
                       </div>

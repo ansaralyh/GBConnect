@@ -24,97 +24,6 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/context/auth-context"
 import { formatCurrency } from "@/lib/utils"
 
-// Mock data
-const bookings = [
-  {
-    id: "booking-1",
-    service: {
-      id: "1",
-      title: "Serena Hotel",
-      type: "accommodation",
-      location: "Gilgit City",
-      image: "/placeholder.svg?height=100&width=100",
-    },
-    checkIn: "2023-12-15",
-    checkOut: "2023-12-18",
-    guests: 2,
-    status: "confirmed",
-    totalPrice: 105000, // PKR
-    provider: {
-      name: "Serena Hotels",
-      avatar: "/placeholder.svg?height=40&width=40",
-      contactInfo: "info@serenahotels.pk",
-    },
-    bookingDate: "2023-11-01",
-  },
-  {
-    id: "booking-2",
-    service: {
-      id: "3",
-      title: "GB Explorer Tours",
-      type: "tours",
-      location: "Skardu",
-      image: "/placeholder.svg?height=100&width=100",
-    },
-    date: "2023-12-20",
-    participants: 2,
-    status: "pending",
-    totalPrice: 30000, // PKR
-    provider: {
-      name: "GB Explorer",
-      avatar: "/placeholder.svg?height=40&width=40",
-      contactInfo: "bookings@gbexplorer.pk",
-    },
-    bookingDate: "2023-11-05",
-  },
-  {
-    id: "booking-3",
-    service: {
-      id: "4",
-      title: "Fairy Meadows Cottage",
-      type: "accommodation",
-      location: "Fairy Meadows",
-      image: "/placeholder.svg?height=100&width=100",
-    },
-    checkIn: "2023-11-10",
-    checkOut: "2023-11-13",
-    guests: 4,
-    status: "completed",
-    totalPrice: 75000, // PKR
-    provider: {
-      name: "Fairy Meadows Resorts",
-      avatar: "/placeholder.svg?height=40&width=40",
-      contactInfo: "info@fairymeadows.pk",
-    },
-    bookingDate: "2023-10-15",
-    review: {
-      rating: 5,
-      comment: "Amazing experience with breathtaking views!",
-    },
-  },
-  {
-    id: "booking-4",
-    service: {
-      id: "2",
-      title: "Mountain View Restaurant",
-      type: "food",
-      location: "Hunza Valley",
-      image: "/placeholder.svg?height=100&width=100",
-    },
-    date: "2023-11-05",
-    participants: 6,
-    status: "cancelled",
-    totalPrice: 15000, // PKR
-    provider: {
-      name: "Hunza Hospitality",
-      avatar: "/placeholder.svg?height=40&width=40",
-      contactInfo: "reservations@hunzahospitality.pk",
-    },
-    bookingDate: "2023-10-20",
-    cancellationReason: "Weather conditions",
-  },
-]
-
 export function MyBookings() {
   const { user, logout } = useAuth()
   const router = useRouter()
@@ -124,6 +33,7 @@ export function MyBookings() {
   const [bookingToCancel, setBookingToCancel] = useState<string | null>(null)
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancellationReason, setCancellationReason] = useState("")
+  const [bookings, setBookings] = useState<any[]>([])
   const [filteredBookings, setFilteredBookings] = useState(bookings)
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -133,13 +43,16 @@ export function MyBookings() {
       router.push("/login")
       return
     }
-
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
+    setIsLoading(true)
+    // Fetch real bookings for the user
+    fetch(`/api/bookings?userId=${user.id || user._id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch bookings")
+        const data = await res.json()
+        setBookings(data)
+      })
+      .catch(() => setBookings([]))
+      .finally(() => setIsLoading(false))
   }, [user, router])
 
   useEffect(() => {
@@ -161,7 +74,7 @@ export function MyBookings() {
     }
 
     setFilteredBookings(filtered)
-  }, [activeTab, searchQuery])
+  }, [activeTab, searchQuery, bookings])
 
   const handleCancelBooking = () => {
     if (!bookingToCancel) return
@@ -405,28 +318,44 @@ export function MyBookings() {
                     <div className="flex items-center gap-2">
                       <div className="h-8 w-8 overflow-hidden rounded-full">
                         <Image
-                          src={booking.provider.avatar || "/placeholder.svg"}
-                          alt={booking.provider.name}
+                          src={booking.provider?.avatar || booking.service?.provider?.avatar || "/placeholder.svg"}
+                          alt={booking.provider?.name || booking.service?.provider?.name || "Provider"}
                           width={32}
                           height={32}
                         />
                       </div>
                       <div>
-                        <div className="text-sm font-medium">{booking.provider.name}</div>
-                        <div className="text-xs text-muted-foreground">{booking.provider.contactInfo}</div>
+                        <div className="text-sm font-medium">{booking.provider?.name || booking.service?.provider?.name || "Provider"}</div>
+                        <div className="text-xs text-muted-foreground">{booking.provider?.contactInfo || booking.service?.provider?.contactInfo || "No contact info available"}</div>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
-                      {booking.status === "pending" || booking.status === "confirmed" ? (
+                      {booking.status !== 'cancelled' && (
                         <Button
-                          variant="outline"
-                          className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                          onClick={() => setBookingToCancel(booking.id)}
+                          variant="destructive"
+                          size="sm"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`/api/bookings/${booking.id}`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ status: 'cancelled' }),
+                              });
+                              if (res.ok) {
+                                // Optionally show a toast
+                                setBookings((prev) => prev.map((b) => b.id === booking.id ? { ...b, status: 'cancelled' } : b));
+                              } else {
+                                // Optionally show error toast
+                              }
+                            } catch (e) {
+                              // Optionally show error toast
+                            }
+                          }}
                         >
                           Cancel Booking
                         </Button>
-                      ) : null}
+                      )}
 
                       {booking.status === "completed" && !booking.review && (
                         <Button asChild>
@@ -434,8 +363,8 @@ export function MyBookings() {
                         </Button>
                       )}
 
-                      <Button variant="outline" asChild>
-                        <Link href={`/booking/${booking.id}`}>View Details</Link>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href={`/booking/confirmation/${booking.id}`}>View Details</Link>
                       </Button>
                     </div>
                   </div>

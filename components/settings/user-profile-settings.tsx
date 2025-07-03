@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, ChangeEvent } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -78,6 +78,8 @@ export function UserProfileSettings({ userType }: { userType: "tourist" | "provi
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("profile")
+  const [avatar, setAvatar] = useState(user?.avatar || "")
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
   const isProvider = userType === "provider"
   const formSchema = isProvider ? providerFormSchema : profileFormSchema
@@ -124,20 +126,52 @@ export function UserProfileSettings({ userType }: { userType: "tourist" | "provi
     router.push("/")
   }
 
+  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      setAvatarFile(file)
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setAvatar(event.target.result as string)
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   async function onProfileSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      let avatarUrl = avatar
+      // In production, upload avatarFile to server/cloud and get the URL
+      // For now, use the local URL or existing avatar
+      const res = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          name: values.name,
+          avatar: avatarUrl,
+          location: values.location,
+          phone: values.phone,
+          website: values.website,
+          bio: values.bio,
+        }),
+      })
+      if (!res.ok) throw new Error('Failed to update profile')
+      const updatedUser = await res.json()
+      localStorage.setItem('gbconnect-user', JSON.stringify(updatedUser))
+      window.location.reload()
       toast({
-        title: "Profile updated",
-        description: "Your profile information has been updated successfully.",
+        title: 'Profile updated',
+        description: 'Your profile information has been updated successfully.',
       })
     } catch (error) {
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update profile. Please try again.",
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to update profile. Please try again.',
       })
     } finally {
       setIsLoading(false)
@@ -291,7 +325,7 @@ export function UserProfileSettings({ userType }: { userType: "tourist" | "provi
                 <CardContent>
                   <div className="mb-6 flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-start sm:justify-start">
                     <Avatar className="h-24 w-24">
-                      <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                      <AvatarImage src={avatar || "/placeholder.svg"} alt={user.name} />
                       <AvatarFallback className="text-2xl">{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-center gap-2 sm:items-start">
@@ -420,6 +454,25 @@ export function UserProfileSettings({ userType }: { userType: "tourist" | "provi
                                 </div>
                               </FormControl>
                               <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          name="avatar"
+                          render={() => (
+                            <FormItem>
+                              <FormLabel>Profile Photo</FormLabel>
+                              <FormControl>
+                                <div className="flex items-center gap-4">
+                                  <Avatar>
+                                    <AvatarImage src={avatar || "/placeholder.svg"} />
+                                    <AvatarFallback>{user?.name?.[0] || "U"}</AvatarFallback>
+                                  </Avatar>
+                                  <input type="file" accept="image/*" onChange={handleAvatarChange} />
+                                </div>
+                              </FormControl>
+                              <FormDescription>Upload a profile photo (optional).</FormDescription>
                             </FormItem>
                           )}
                         />

@@ -33,118 +33,6 @@ import { MainNav } from "@/components/main-nav"
 import { Footer } from "@/components/footer"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/utils"
-// Mock data with Pakistani locations and PKR currency
-const mockServices = [
-  {
-    id: "1",
-    title: "Guided Tour of Badshahi Mosque",
-    description: "Explore the historic Badshahi Mosque with a knowledgeable local guide.",
-    location: "Lahore, Punjab",
-    price: 2500, // in PKR
-    rating: 4.8,
-    reviews: 124,
-    image: "/images/fyp.pic8.jpeg",
-    provider: {
-      id: "3",
-      name: "Muhammad Ali",
-      rating: 4.9,
-    },
-    categories: ["Cultural", "Historical"],
-  },
-  {
-    id: "2",
-    title: "Hunza Valley Adventure Trek",
-    description: "Experience the breathtaking beauty of Hunza Valley with our expert guides.",
-    location: "Hunza, Gilgit-Baltistan",
-    price: 15000, // in PKR
-    rating: 4.9,
-    reviews: 87,
-    image: "/images/fyp.pic5.jpg",
-    provider: {
-      id: "4",
-      name: "Ayesha Malik",
-      rating: 4.7,
-    },
-    categories: ["Adventure", "Trekking"],
-  },
-  {
-    id: "3",
-    title: "Karachi City Tour",
-    description: "Discover the vibrant culture and landmarks of Pakistan's largest city.",
-    location: "Karachi, Sindh",
-    price: 3500, // in PKR
-    rating: 4.6,
-    reviews: 92,
-    image: "/images/fyp.pic11.jpg",
-    provider: {
-      id: "6",
-      name: "Imran Hussain",
-      rating: 4.8,
-    },
-    categories: ["City Tour", "Cultural"],
-  },
-  {
-    id: "4",
-    title: "Swat Valley Exploration",
-    description: "Explore the scenic beauty of Swat Valley, known as the 'Switzerland of Pakistan'.",
-    location: "Swat, Khyber Pakhtunkhwa",
-    price: 12000, // in PKR
-    rating: 4.7,
-    reviews: 65,
-    image: "/images/fyp.pic12.png",
-    provider: {
-      id: "3",
-      name: "Muhammad Ali",
-      rating: 4.9,
-    },
-    categories: ["Nature", "Adventure"],
-  },
-  {
-    id: "5",
-    title: "Mohenjo-daro Archaeological Tour",
-    description: "Step back in time with a guided tour of the ancient Indus Valley Civilization site.",
-    location: "Larkana, Sindh",
-    price: 4500, // in PKR
-    rating: 4.8,
-    reviews: 43,
-    image: "/images/fyp.pic13.jpg",
-    provider: {
-      id: "4",
-      name: "Ayesha Malik",
-      rating: 4.7,
-    },
-    categories: ["Historical", "Educational"],
-  },
-  {
-    id: "6",
-    title: "Kalash Valley Cultural Experience",
-    description: "Immerse yourself in the unique culture of the Kalash people in Chitral.",
-    location: "Chitral, Khyber Pakhtunkhwa",
-    price: 18000, // in PKR
-    rating: 4.9,
-    reviews: 38,
-    image: "/images/fyp.pic14.jpg",
-    provider: {
-      id: "6",
-      name: "Imran Hussain",
-      rating: 4.8,
-    },
-    categories: ["Cultural", "Immersive"],
-  },
-]
-
-// Filter categories
-const categories = [
-  "All",
-  "Adventure",
-  "Cultural",
-  "Historical",
-  "Nature",
-  "City Tour",
-  "Trekking",
-  "Educational",
-  "Immersive",
-]
 
 export function ServiceListings() {
   const searchParams = useSearchParams()
@@ -160,17 +48,37 @@ export function ServiceListings() {
   const [sortBy, setSortBy] = useState("recommended")
   const [isLoading, setIsLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState("All")
-  const [services, setServices] = useState(mockServices)
-  const [filteredServices, setFilteredServices] = useState(mockServices)
+  const [services, setServices] = useState<any[]>([])
+  const [filteredServices, setFilteredServices] = useState<any[]>([])
+  const [error, setError] = useState<string>("")
 
-  // Simulate loading
+  // Fetch services from backend
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1500)
-
-    return () => clearTimeout(timer)
-  }, [])
+    setIsLoading(true)
+    setError("")
+    // Build query params
+    const params = new URLSearchParams()
+    if (location) params.append("location", location)
+    if (serviceType) params.append("type", serviceType)
+    // Add more params as needed
+    fetch(`/api/services?${params.toString()}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch services")
+        let data = await res.json()
+        // Map _id to id for each service
+        data = data.map((service: any) => ({
+          ...service,
+          id: service._id || service.id,
+        }))
+        setServices(data)
+      })
+      .catch(() => {
+        setServices([])
+        setError("Failed to load services. Please try again.")
+      })
+      .finally(() => setIsLoading(false))
+    // eslint-disable-next-line
+  }, [location, serviceType])
 
   // Apply filters
   useEffect(() => {
@@ -755,7 +663,7 @@ export function ServiceListings() {
                           </div>
                           <p className="mt-2 text-sm text-muted-foreground line-clamp-2">{service.description}</p>
                           <div className="flex flex-wrap gap-1 mt-3">
-                            {service.categories.map((category) => (
+                            {(service.categories ?? []).map((category: string) => (
                               <Badge key={category} variant="secondary" className="text-xs">
                                 {category}
                               </Badge>
@@ -763,7 +671,7 @@ export function ServiceListings() {
                           </div>
                         </CardContent>
                         <CardFooter className="flex justify-between items-center pt-0">
-                          <div className="text-sm text-muted-foreground">By {service.provider.name}</div>
+                          <div className="text-sm text-muted-foreground">By {service.provider?.name ?? "Unknown"}</div>
                           <div className="font-semibold">{formatCurrency(service.price)}</div>
                         </CardFooter>
                       </Card>

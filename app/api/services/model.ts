@@ -23,4 +23,27 @@ export interface Service {
   createdAt: Date;
   updatedAt: Date;
   status?: string;
+}
+
+export interface Booking {
+  _id?: ObjectId;
+  serviceId: string;
+  userId: string;
+  checkIn: Date;
+  checkOut: Date;
+  guests: number;
+  status: string;
+  totalPrice: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Review {
+  _id?: ObjectId;
+  serviceId: string;
+  userId: string;
+  rating: number;
+  comment: string;
+  createdAt: Date;
+  updatedAt: Date;
 } 

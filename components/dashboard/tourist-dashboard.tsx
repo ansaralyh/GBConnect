@@ -122,6 +122,11 @@ export function TouristDashboard() {
   const { user, logout } = useAuth()
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
+  const [bookings, setBookings] = useState<any[]>([])
+  const [loadingBookings, setLoadingBookings] = useState(true)
+  const [services, setServices] = useState<any[]>([])
+  const [recentReviews, setRecentReviews] = useState<any[]>([])
+  const [recentBookings, setRecentBookings] = useState<any[]>([])
   
   useEffect(() => {
     // Check if user is authenticated
@@ -129,14 +134,47 @@ export function TouristDashboard() {
       router.push("/login")
       return
     }
-    
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-    
-    return () => clearTimeout(timer)
+    setLoadingBookings(true)
+    fetch(`/api/bookings?userId=${user.id || user._id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to fetch bookings")
+        const data = await res.json()
+        setBookings(data)
+      })
+      .catch(() => setBookings([]))
+      .finally(() => setLoadingBookings(false))
   }, [user, router])
+  
+  useEffect(() => {
+    // Fetch all services for recommendations
+    fetch('/api/services')
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch services')
+        const data = await res.json()
+        setServices(data)
+      })
+      .catch(() => setServices([]))
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
+    // Fetch recent reviews
+    fetch(`/api/services/review?userId=${user.id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch reviews')
+        const data = await res.json()
+        setRecentReviews(data)
+      })
+      .catch(() => setRecentReviews([]))
+    // Fetch recent bookings
+    fetch(`/api/bookings?userId=${user.id}`)
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Failed to fetch bookings')
+        const data = await res.json()
+        setRecentBookings(data)
+      })
+      .catch(() => setRecentBookings([]))
+  }, [user])
   
   const handleLogout = () => {
     logout()
@@ -146,6 +184,14 @@ export function TouristDashboard() {
   if (!user) {
     return null
   }
+  
+  // Filter for upcoming bookings
+  const now = new Date()
+  const upcomingBookings = bookings.filter(
+    (b) =>
+      (b.status === "confirmed" || b.status === "pending") &&
+      new Date(b.checkIn) >= now
+  )
   
   return (
     <div className="flex min-h-screen flex-col">
@@ -293,7 +339,11 @@ export function TouristDashboard() {
             </div>
             
             <div className="mt-4">
-              {upcomingBookings.length > 0 ? (
+              {loadingBookings ? (
+                <div className="flex h-32 items-center justify-center">
+                  <span>Loading bookings...</span>
+                </div>
+              ) : upcomingBookings.length > 0 ? (
                 <div className="grid gap-4">
                   {upcomingBookings.map((booking) => (
                     <Card key={booking.id}>
@@ -301,8 +351,8 @@ export function TouristDashboard() {
                         <div className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr]">
                           <div className="relative h-full">
                             <Image
-                              src={booking.service.image || "/placeholder.svg"}
-                              alt={booking.service.title}
+                              src={booking.service?.image || "/placeholder.svg"}
+                              alt={booking.service?.title || "Service"}
                               fill
                               className="object-cover"
                             />
@@ -310,49 +360,35 @@ export function TouristDashboard() {
                           <div className="p-4">
                             <div className="mb-1 flex items-center justify-between">
                               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                                booking.status === "confirmed" 
-                                  ? "bg-green-100 text-green-800" 
+                                booking.status === "confirmed"
+                                  ? "bg-green-100 text-green-800"
                                   : "bg-yellow-100 text-yellow-800"
                               }`}>
                                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                               </span>
                               <span className="font-medium text-primary">{booking.totalPrice}</span>
                             </div>
-                            <h3 className="font-semibold">{booking.service.title}</h3>
+                            <h3 className="font-semibold">{booking.service?.title || "Service"}</h3>
                             <div className="mt-1 flex items-center text-sm text-muted-foreground">
                               <MapPin className="mr-1 h-3 w-3" />
-                              <span>{booking.service.location}</span>
+                              <span>{booking.service?.location || "Location"}</span>
                             </div>
-                            {/* <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                               <div className="flex items-center">
                                 <Calendar className="mr-1 h-3 w-3" />
                                 <span>
-                                  {booking.checkIn 
+                                  {booking.checkIn && booking.checkOut
                                     ? `${new Date(booking.checkIn).toLocaleDateString()} - ${new Date(booking.checkOut).toLocaleDateString()}`
-                                    : new Date(booking.date).toLocaleDateString()
-                                  }
+                                    : booking.date
+                                    ? new Date(booking.date).toLocaleDateString()
+                                    : 'Date not available'}
                                 </span>
                               </div>
                               <div className="flex items-center">
                                 <User className="mr-1 h-3 w-3" />
                                 <span>{booking.guests || booking.participants} {booking.guests ? "guests" : "participants"}</span>
                               </div>
-                            </div> */}
-                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-  <div className="flex items-center">
-    <Calendar className="mr-1 h-3 w-3" />
-    <span>
-      {booking.checkIn && booking.checkOut 
-        ? `${new Date(booking.checkIn).toLocaleDateString()} - ${new Date(booking.checkOut).toLocaleDateString()}` 
-        : booking.date ? new Date(booking.date).toLocaleDateString() : 'Date not available'
-      }
-    </span>
-  </div>
-  <div className="flex items-center">
-    <User className="mr-1 h-3 w-3" />
-    <span>{booking.guests || booking.participants} {booking.guests ? "guests" : "participants"}</span>
-  </div>
-</div>
+                            </div>
                             <div className="mt-3 flex justify-end gap-2">
                               <Button variant="outline" size="sm">View Details</Button>
                               {booking.status === "pending" && (
@@ -394,54 +430,29 @@ export function TouristDashboard() {
     </Button>
   </div>
 
-  <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-    {recommendedServices.length > 0 ? (
-      recommendedServices.map((service) => (
+  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+    {services
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
+      .slice(0, 3)
+      .map((service) => (
         <Card key={service.id}>
-          <CardContent className="p-0">
-            <div className="relative h-40">
-              <Image
-                src={service.image || "/placeholder.svg"}
-                alt={service.title}
-                fill
-                className="object-cover rounded-t-lg"
-              />
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold">{service.title}</h3>
-              <div className="mt-1 flex items-center text-sm text-muted-foreground">
-                <MapPin className="mr-1 h-3 w-3" />
-                <span>{service.location}</span>
-              </div>
-              <div className="mt-2 flex items-center text-sm">
-                <span className="mr-1">Price:</span>
-                <span>{service.price}</span>
-              </div>
-              <div className="mt-1 flex items-center text-sm">
-                <span className="mr-1">Rating:</span>
-                <span>{service.rating}</span>
-              </div>
-              <div className="mt-3 flex justify-end gap-2">
-                <Button variant="outline" size="sm">View Details</Button>
-              </div>
-            </div>
+          <CardContent>
+            <Image
+              src={service.images?.[0] || "/placeholder.svg"}
+              alt={service.title}
+              width={300}
+              height={180}
+              style={{ objectFit: "cover", width: "100%", height: "180px", borderRadius: "8px" }}
+              className="mb-2"
+            />
+            <div className="font-semibold text-lg">{service.title}</div>
+            <div className="text-muted-foreground text-sm flex items-center gap-1"><MapPin className="h-4 w-4" />{service.location}</div>
+            <div className="text-sm">Price: {service.price}</div>
+            <div className="text-sm">Rating: {service.rating ?? 'N/A'}</div>
+            <Button asChild className="mt-2"><Link href={`/services/${service.id}`}>View Details</Link></Button>
           </CardContent>
         </Card>
-      ))
-    ) : (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-          <Heart className="mb-2 h-8 w-8 text-muted-foreground" />
-          <h3 className="font-medium">No recommended services</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Explore more services and discover your next adventure!
-          </p>
-          <Button className="mt-4" asChild>
-            <Link href="/services">Discover Services</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    )}
+      ))}
   </div>
 </section>
 
@@ -451,37 +462,23 @@ export function TouristDashboard() {
     <h2 className="text-xl font-semibold tracking-tight">Recent Activity</h2>
   </div>
 
-  <div className="mt-4">
-    {recentActivity.length > 0 ? (
-      recentActivity.map((activity) => (
-        <Card key={activity.id}>
-          <CardContent className="p-4">
-            <div className="flex justify-between">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold">{activity.type}</span>
-                <span className="text-sm text-muted-foreground">{activity.date}</span>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {activity.service}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))
-    ) : (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center p-6 text-center">
-          <User className="mb-2 h-8 w-8 text-muted-foreground" />
-          <h3 className="font-medium">No recent activity</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Start exploring services and make your first booking!
-          </p>
-          <Button className="mt-4" asChild>
-            <Link href="/services">Discover Services</Link>
-          </Button>
-        </CardContent>
-      </Card>
-    )}
+  <div className="mt-4 space-y-2">
+    {/* Recent reviews */}
+    {recentReviews.slice(0, 3).map((review) => (
+      <div key={review.id} className="flex items-center justify-between border rounded p-2">
+        <span>review</span>
+        <span className="text-muted-foreground text-xs">{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}</span>
+        <span className="font-medium">{review.service?.title || ''}</span>
+      </div>
+    ))}
+    {/* Recent bookings */}
+    {recentBookings.slice(0, 3).map((booking) => (
+      <div key={booking.id} className="flex items-center justify-between border rounded p-2">
+        <span>booking</span>
+        <span className="text-muted-foreground text-xs">{booking.checkIn ? new Date(booking.checkIn).toLocaleDateString() : ''}</span>
+        <span className="font-medium">{booking.service?.title || ''}</span>
+      </div>
+    ))}
   </div>
 </section>
 

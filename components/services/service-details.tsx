@@ -9,48 +9,13 @@ import { formatCurrency } from "@/lib/utils"
 import { useAuth } from "@/context/auth-context"
 import { useEffect, useState } from "react"
 
-// Mock reviews
-const mockReviews = [
-  {
-    id: "1",
-    user: {
-      name: "Asad Mahmood",
-      image: "/images/fyp.pic8.jpeg",
-    },
-    rating: 5,
-    date: "June 12, 2023",
-    comment:
-      "An incredible experience! Our guide was extremely knowledgeable about the history of the Badshahi Mosque and answered all our questions. Highly recommended for anyone visiting Lahore.",
-  },
-  {
-    id: "2",
-    user: {
-      name: "Sana Riaz",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    rating: 4,
-    date: "May 28, 2023",
-    comment:
-      "Very informative tour with plenty of time to take photos and enjoy the beautiful architecture. The guide was friendly and spoke excellent English.",
-  },
-  {
-    id: "3",
-    user: {
-      name: "Omar Farooq",
-      image: "/placeholder.svg?height=40&width=40",
-    },
-    rating: 5,
-    date: "May 15, 2023",
-    comment:
-      "This tour exceeded my expectations. The historical context provided by our guide made the experience so much more meaningful than just visiting on our own.",
-  },
-]
-
 export function ServiceDetails({ id }: { id: string }) {
   const { user } = useAuth()
   const [service, setService] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reviews, setReviews] = useState<any[]>([])
+  const [loadingReviews, setLoadingReviews] = useState(true)
 
   useEffect(() => {
     async function fetchService() {
@@ -70,6 +35,27 @@ export function ServiceDetails({ id }: { id: string }) {
     if (id) fetchService()
   }, [id])
 
+  useEffect(() => {
+    async function fetchReviews() {
+      setLoadingReviews(true)
+      try {
+        const res = await fetch(`/api/services/${id}/review`)
+        if (!res.ok) throw new Error("Failed to fetch reviews")
+        const data = await res.json()
+        setReviews(data)
+      } catch {
+        setReviews([])
+      } finally {
+        setLoadingReviews(false)
+      }
+    }
+    if (id) fetchReviews()
+  }, [id])
+
+  // Calculate average rating and review count from reviews
+  const reviewCount = reviews.length
+  const averageRating = reviewCount > 0 ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviewCount) : null
+
   if (loading) return <div className="p-8 text-center">Loading...</div>
   if (error) return <div className="p-8 text-center text-red-500">{error}</div>
   if (!service) return <div className="p-8 text-center">Service not found.</div>
@@ -84,8 +70,8 @@ export function ServiceDetails({ id }: { id: string }) {
           <div className="flex flex-wrap items-center gap-4 mb-6">
             <div className="flex items-center gap-1">
               <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
-              <span className="font-medium">{service.rating ?? "N/A"}</span>
-              <span className="text-muted-foreground">({service.reviews ?? 0} reviews)</span>
+              <span className="font-medium">{averageRating ? averageRating.toFixed(1) : "N/A"}</span>
+              <span className="text-muted-foreground">({reviewCount} reviews)</span>
             </div>
             <div className="flex items-center gap-1 text-muted-foreground">
               <MapPin className="h-5 w-5" />
@@ -215,33 +201,36 @@ export function ServiceDetails({ id }: { id: string }) {
 
             <TabsContent value="reviews" className="mt-4">
               <div className="space-y-6">
-                {mockReviews.map((review) => (
-                  <div key={review.id} className="border-b pb-4 last:border-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <img
-                        src={review.user.image || "/placeholder.svg"}
-                        alt={review.user.name}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <div className="font-medium">{review.user.name}</div>
-                        <div className="text-sm text-muted-foreground">{review.date}</div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-4 w-4 ${i < review.rating ? "fill-amber-500 text-amber-500" : "text-gray-300"}`}
+                {loadingReviews ? (
+                  <div className="text-center py-4">Loading reviews...</div>
+                ) : reviews.length === 0 ? (
+                  <div className="text-muted-foreground text-center py-4">No reviews yet.</div>
+                ) : (
+                  reviews.map((review) => (
+                    <div key={review.id} className="border-b pb-4 last:border-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <img
+                          src={review.userAvatar || "/placeholder.svg"}
+                          alt={review.userName || review.userId || "User"}
+                          className="w-10 h-10 rounded-full"
                         />
-                      ))}
+                        <div>
+                          <div className="font-medium">{review.userName || review.userId || "User"}</div>
+                          <div className="text-sm text-muted-foreground">{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ""}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 mb-2">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${i < review.rating ? "fill-amber-500 text-amber-500" : "text-gray-300"}`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-muted-foreground">{review.comment}</p>
                     </div>
-
-                    <p className="text-muted-foreground">{review.comment}</p>
-                  </div>
-                ))}
-
+                  ))
+                )}
                 <div className="text-center mt-4">
                   <Link href={`/services/${service._id}/review`}>
                     <Button variant="outline">Write a Review</Button>
@@ -289,8 +278,8 @@ export function ServiceDetails({ id }: { id: string }) {
                     <div className="font-medium">{service.provider?.name || "Unknown"}</div>
                     <div className="flex items-center gap-1 text-sm">
                       <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                      <span>{service.provider?.rating ?? "N/A"}</span>
-                      <span className="text-muted-foreground">({service.provider?.reviews ?? 0} reviews)</span>
+                      <span>{averageRating ? averageRating.toFixed(1) : "N/A"}</span>
+                      <span className="text-muted-foreground">({reviewCount} reviews)</span>
                     </div>
                   </div>
                 </div>

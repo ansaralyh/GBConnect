@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
@@ -149,26 +149,42 @@ export function BookingProcess({ serviceId }: { serviceId: string }) {
 
   const onSubmitPayment = async (values: z.infer<typeof paymentFormSchema>) => {
     setIsLoading(true)
+    console.log("Submitting booking...");
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
-
-      // Show success toast
+      if (!user || !service) throw new Error("Missing user or service info");
+      // Create booking in backend
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          serviceId: serviceId,
+          userId: user.id || user._id,
+          checkIn: bookingDetails.checkIn,
+          checkOut: bookingDetails.checkOut,
+          guests: bookingDetails.guests,
+          status: "confirmed",
+          totalPrice: total,
+        }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Booking creation failed:", errorData);
+        throw new Error(errorData.error || "Failed to create booking");
+      }
       toast({
         title: "Booking Confirmed!",
         description: "Your booking has been successfully confirmed. Check your email for details.",
-      })
-
-      // Redirect to confirmation page
-      router.push(`/booking/confirmation/${serviceId}`)
-    } catch (error) {
+      });
+      router.push(`/booking/confirmation/${serviceId}`);
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Payment Failed",
-        description: "There was an error processing your payment. Please try again.",
-      })
+        description: error.message || "There was an error processing your payment. Please try again.",
+      });
+      console.error("Booking error:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 

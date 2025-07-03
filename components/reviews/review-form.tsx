@@ -79,18 +79,24 @@ export function ReviewForm({ serviceId }: { serviceId: string }) {
       router.push("/login")
       return
     }
-
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
+      const res = await fetch(`/api/services/${serviceId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id || user._id,
+          userName: user.name || null,
+          userAvatar: user.avatar || null,
+          rating: values.rating,
+          comment: values.comment,
+        }),
+      })
+      if (!res.ok) throw new Error("Failed to submit review")
       toast({
         title: "Review Submitted",
         description: "Thank you for sharing your experience!",
       })
-
-      // Redirect to service page
       router.push(`/services/${serviceId}`)
     } catch (error) {
       toast({
