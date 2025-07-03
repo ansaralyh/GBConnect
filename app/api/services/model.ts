@@ -1,6 +1,6 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
-const uri = 'mongodb://127.0.0.1:27017/GBConnect';
+const uri = 'mongodb+srv://GBConnect:GBConnect@cluster0.3v0gb0g.mongodb.net/GBConnect';
 let cachedClient: MongoClient | null = null;
 
 export async function connectToDatabase() {

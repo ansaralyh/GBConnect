@@ -85,12 +85,8 @@ export function SignupForm() {
         description: "Welcome to GBConnect!",
       })
 
-      // Redirect based on user role
-      if (values.role === "provider") {
-        router.push("/dashboard/provider")
-      } else {
-        router.push("/dashboard/tourist")
-      }
+      // Redirect to login page after successful registration
+      router.push("/login")
     } catch (error) {
       toast({
         variant: "destructive",
