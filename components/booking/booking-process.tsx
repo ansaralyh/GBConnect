@@ -396,8 +396,43 @@ export function BookingProcess({ serviceId }: { serviceId: string }) {
                     </Form>
                   </CardContent>
                   <CardFooter className="flex justify-end gap-4 p-6 pt-0">
-                    <Button onClick={nextStep}>Continue to Payment</Button>
-                  </CardFooter>
+  <Button
+    onClick={async () => {
+      const isValid = await guestForm.trigger();
+      if (isValid) {
+        setIsLoading(true);
+        try {
+          if (!user || !service) throw new Error("Missing user or service info");
+
+          const res = await fetch("/api/bookings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              serviceId: serviceId,
+              userId: user.id || user._id,
+              checkIn: bookingDetails.checkIn,
+              checkOut: bookingDetails.checkOut,
+              guests: bookingDetails.guests,
+              status: "confirmed",
+              totalPrice: total,
+            }),
+          });
+
+          if (!res.ok) throw new Error("Failed to create booking");
+          const booking = await res.json();
+
+          router.push(`/booking/confirmation/${booking._id}`);
+        } catch (error) {
+          console.error("Booking error:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }}
+  >
+    Confirm Booking (Skip Payment)
+  </Button>
+                 </CardFooter>
                 </Card>
               )}
 

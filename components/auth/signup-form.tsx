@@ -379,16 +379,7 @@ export function SignupForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" className="w-full">
-              <Image src="/placeholder.svg?height=20&width=20" alt="Google" width={20} height={20} className="mr-2" />
-              Google
-            </Button>
-            <Button variant="outline" className="w-full">
-              <Image src="/placeholder.svg?height=20&width=20" alt="Facebook" width={20} height={20} className="mr-2" />
-              Facebook
-            </Button>
-          </div>
+        
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
