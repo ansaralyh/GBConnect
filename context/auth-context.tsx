@@ -83,6 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           email: userData.email,
           password: userData.password,
           userType: userData.role,
+          name: userData.name,
+          phone: userData.phone,
+          location: userData.location,
         }),
       })
       const data = await res.json()
@@ -90,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Registration failed')
       }
       // Optionally, auto-login after registration
-      await login(userData.email, userData.password)
+      // await login(userData.email, userData.password)
     } catch (error) {
       console.error('Registration failed:', error)
       throw error

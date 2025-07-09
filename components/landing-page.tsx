@@ -17,6 +17,7 @@ import {
   Search,
   MapPin,
 } from "lucide-react"
+import { useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,6 +28,26 @@ import { SearchForm } from "@/components/search/search-form"
 
 export function LandingPage() {
   const router = useRouter()
+  const [services, setServices] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch("/api/services")
+      .then(res => res.json())
+      .then(data => {
+        setServices(data)
+        setLoading(false)
+      })
+  }, [])
+
+  const getServicesByCategory = (category) => {
+    if (category === "all") return services
+    if (category === "accommodation") return services.filter(s => s.category?.toLowerCase() === "accommodation")
+    if (category === "food") return services.filter(s => s.category?.toLowerCase() === "food")
+    if (category === "transport") return services.filter(s => s.category?.toLowerCase() === "transportation")
+    if (category === "tours") return services.filter(s => s.category?.toLowerCase() === "tours")
+    return []
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -155,90 +176,206 @@ export function LandingPage() {
 
               <TabsContent value="all" className="mt-0">
                 <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {[
-                    {
-                      id: 1,
-                      title: "Serena Hotel",
-                      type: "accommodation",
-                      location: "Gilgit City",
-                      price: "PKR 35,000/night",
-                      rating: 4.8,
-                      image: "/images/fyp.pic1.jpg",
-                    },
-                    {
-                      id: 2,
-                      title: "Mountain View Restaurant",
-                      type: "food",
-                      location: "Hunza Valley",
-                      price: "PKR 2,500",
-                      rating: 4.5,
-                      image: "/images/fyp.pic2.jpg",
-                    },
-                    {
-                      id: 3,
-                      title: "GB Explorer Tours",
-                      type: "tours",
-                      location: "Skardu",
-                      price: "PKR 15,000/day",
-                      rating: 4.7,
-                      image: "/images/fyp.pic3.jpg",
-                    },
-                    {
-                      id: 4,
-                      title: "Fairy Meadows Cottage",
-                      type: "accommodation",
-                      location: "Fairy Meadows",
-                      price: "PKR 25,000/night",
-                      rating: 4.6,
-                      image: "/images/fyp.pic4.jpeg",
-                    },
-                  ].map((service) => (
-                    <Card key={service.id} className="service-card overflow-hidden">
-                      <div className="relative h-48">
-                        <Image
-                          src={service.images?.[0] || "/placeholder.svg"}
-                          alt={service.title}
-                          fill
-                          className="object-cover"
-                        />
-                        <div className="absolute right-2 top-2 rounded-full bg-white p-1.5">
-                          <Button size="icon" variant="ghost" className="h-6 w-6">
-                            <Star className="h-4 w-4" />
-                            <span className="sr-only">Add to favorites</span>
-                          </Button>
+                  {loading ? (
+                    <div>Loading...</div>
+                  ) : (
+                    getServicesByCategory("all").map((service) => (
+                      <Card key={service.id || service._id} className="service-card overflow-hidden">
+                        <div className="relative h-48">
+                          <Image
+                            src={service.images?.[0] || "/placeholder.svg"}
+                            alt={service.title}
+                            fill
+                            className="object-cover"
+                          />
                         </div>
-                      </div>
-                      <CardContent className="p-4">
-                        <div className="mb-2 flex items-center justify-between">
-                          <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
-                            {service.type.charAt(0).toUpperCase() + service.type.slice(1)}
-                          </span>
-                          <div className="flex items-center text-sm">
-                            <Star className="mr-1 h-4 w-4 fill-primary text-primary" />
-                            <span>{service.rating}</span>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              {service.category}
+                            </span>
+                            <span className="flex items-center text-sm text-muted-foreground">
+                              <Star className="mr-1 h-4 w-4 text-yellow-500" />
+                              {service.rating || "N/A"}
+                            </span>
                           </div>
-                        </div>
-                        <h3 className="line-clamp-1 text-lg font-semibold">{service.title}</h3>
-                        <div className="mb-3 flex items-center text-sm text-muted-foreground">
-                          <MapPin className="mr-1 h-4 w-4" />
-                          <span>{service.location}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium text-primary">{service.price}</span>
-                          <Button size="sm" variant="outline" asChild>
-                            <Link href={`/services/${service.id}`}>View Details</Link>
+                          <h3 className="mt-2 text-lg font-semibold">{service.title}</h3>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="mr-1 h-4 w-4" />
+                            {service.location}
+                          </div>
+                          <div className="mt-2 font-bold text-primary">{service.price}</div>
+                          <Button asChild className="mt-4 w-full">
+                            <Link href={`/services/${service.id || service._id}`}>View Details</Link>
                           </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
 
-              {/* Other tabs content would be similar but filtered by category */}
               <TabsContent value="accommodation" className="mt-0">
                 <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                  {/* Filtered accommodation services */}
+                  {loading ? (
+                    <div>Loading...</div>
+                  ) : (
+                    getServicesByCategory("accommodation").map((service) => (
+                      <Card key={service.id || service._id} className="service-card overflow-hidden">
+                        <div className="relative h-48">
+                          <Image
+                            src={service.images?.[0] || "/placeholder.svg"}
+                            alt={service.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              {service.category}
+                            </span>
+                            <span className="flex items-center text-sm text-muted-foreground">
+                              <Star className="mr-1 h-4 w-4 text-yellow-500" />
+                              {service.rating || "N/A"}
+                            </span>
+                          </div>
+                          <h3 className="mt-2 text-lg font-semibold">{service.title}</h3>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="mr-1 h-4 w-4" />
+                            {service.location}
+                          </div>
+                          <div className="mt-2 font-bold text-primary">{service.price}</div>
+                          <Button asChild className="mt-4 w-full">
+                            <Link href={`/services/${service.id || service._id}`}>View Details</Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="food" className="mt-0">
+                <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {loading ? (
+                    <div>Loading...</div>
+                  ) : (
+                    getServicesByCategory("food").map((service) => (
+                      <Card key={service.id || service._id} className="service-card overflow-hidden">
+                        <div className="relative h-48">
+                          <Image
+                            src={service.images?.[0] || "/placeholder.svg"}
+                            alt={service.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              {service.category}
+                            </span>
+                            <span className="flex items-center text-sm text-muted-foreground">
+                              <Star className="mr-1 h-4 w-4 text-yellow-500" />
+                              {service.rating || "N/A"}
+                            </span>
+                          </div>
+                          <h3 className="mt-2 text-lg font-semibold">{service.title}</h3>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="mr-1 h-4 w-4" />
+                            {service.location}
+                          </div>
+                          <div className="mt-2 font-bold text-primary">{service.price}</div>
+                          <Button asChild className="mt-4 w-full">
+                            <Link href={`/services/${service.id || service._id}`}>View Details</Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="transport" className="mt-0">
+                <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {loading ? (
+                    <div>Loading...</div>
+                  ) : (
+                    getServicesByCategory("transport").map((service) => (
+                      <Card key={service.id || service._id} className="service-card overflow-hidden">
+                        <div className="relative h-48">
+                          <Image
+                            src={service.images?.[0] || "/placeholder.svg"}
+                            alt={service.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              {service.category}
+                            </span>
+                            <span className="flex items-center text-sm text-muted-foreground">
+                              <Star className="mr-1 h-4 w-4 text-yellow-500" />
+                              {service.rating || "N/A"}
+                            </span>
+                          </div>
+                          <h3 className="mt-2 text-lg font-semibold">{service.title}</h3>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="mr-1 h-4 w-4" />
+                            {service.location}
+                          </div>
+                          <div className="mt-2 font-bold text-primary">{service.price}</div>
+                          <Button asChild className="mt-4 w-full">
+                            <Link href={`/services/${service.id || service._id}`}>View Details</Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              <TabsContent value="tours" className="mt-0">
+                <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+                  {loading ? (
+                    <div>Loading...</div>
+                  ) : (
+                    getServicesByCategory("tours").map((service) => (
+                      <Card key={service.id || service._id} className="service-card overflow-hidden">
+                        <div className="relative h-48">
+                          <Image
+                            src={service.images?.[0] || "/placeholder.svg"}
+                            alt={service.title}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <span className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                              {service.category}
+                            </span>
+                            <span className="flex items-center text-sm text-muted-foreground">
+                              <Star className="mr-1 h-4 w-4 text-yellow-500" />
+                              {service.rating || "N/A"}
+                            </span>
+                          </div>
+                          <h3 className="mt-2 text-lg font-semibold">{service.title}</h3>
+                          <div className="flex items-center text-sm text-muted-foreground">
+                            <MapPin className="mr-1 h-4 w-4" />
+                            {service.location}
+                          </div>
+                          <div className="mt-2 font-bold text-primary">{service.price}</div>
+                          <Button asChild className="mt-4 w-full">
+                            <Link href={`/services/${service.id || service._id}`}>View Details</Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
