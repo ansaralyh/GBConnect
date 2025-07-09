@@ -40,6 +40,8 @@ const mockServices = [
       name: "Serena Hotels",
       avatar: "/placeholder.svg?height=50&width=50",
     },
+    serviceFeeRate: 0.1,
+    taxRate: 0.05,
   },
   {
     id: "2",
@@ -56,6 +58,8 @@ const mockServices = [
       name: "Hunza Hospitality",
       avatar: "/placeholder.svg?height=50&width=50",
     },
+    serviceFeeRate: 0.15,
+    taxRate: 0.08,
   },
 ]
 
@@ -102,10 +106,15 @@ export function BookingProcess({ serviceId }: { serviceId: string }) {
   const service = mockServices.find((s) => s.id === serviceId) || mockServices[0]
 
   // Calculate prices
-  const subtotal = service.price * bookingDetails.nights
-  const serviceFee = Math.round(subtotal * 0.1)
-  const taxes = Math.round(subtotal * 0.05)
-  const total = subtotal + serviceFee + taxes
+  const nights = Math.ceil((bookingDetails.checkOut.getTime() - bookingDetails.checkIn.getTime()) / (1000 * 60 * 60 * 24));
+  const price = service.price || 0;
+  const guests = bookingDetails.guests;
+  const serviceFeeRate = service.serviceFeeRate ?? 0.1;
+  const taxRate = service.taxRate ?? 0.05;
+  const subtotal = price * nights * guests;
+  const serviceFee = Math.round(subtotal * serviceFeeRate);
+  const taxes = Math.round(subtotal * taxRate);
+  const total = subtotal + serviceFee + taxes;
 
   // Guest information form
   const guestForm = useForm<z.infer<typeof guestFormSchema>>({
@@ -673,22 +682,22 @@ export function BookingProcess({ serviceId }: { serviceId: string }) {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">
-                          {formatCurrency(service.price)} x {bookingDetails.nights} nights
+                          Rs {price.toLocaleString()} × {nights} night{nights > 1 ? "s" : ""} × {guests} guest{guests > 1 ? "s" : ""}
                         </span>
-                        <span className="text-sm">{formatCurrency(subtotal)}</span>
+                        <span className="text-sm">Rs {subtotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm">Service fee</span>
-                        <span className="text-sm">{formatCurrency(serviceFee)}</span>
+                        <span className="text-sm">Service fee ({(serviceFeeRate * 100).toFixed(0)}%)</span>
+                        <span className="text-sm">Rs {serviceFee.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm">Taxes</span>
-                        <span className="text-sm">{formatCurrency(taxes)}</span>
+                        <span className="text-sm">Taxes ({(taxRate * 100).toFixed(0)}%)</span>
+                        <span className="text-sm">Rs {taxes.toLocaleString()}</span>
                       </div>
                       <Separator className="my-2" />
                       <div className="flex justify-between font-semibold">
                         <span>Total</span>
-                        <span>{formatCurrency(total)}</span>
+                        <span>Rs {total.toLocaleString()}</span>
                       </div>
                     </div>
                   </div>

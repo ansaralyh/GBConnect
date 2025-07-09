@@ -23,6 +23,19 @@ export interface Service {
   createdAt: Date;
   updatedAt: Date;
   status?: string;
+  serviceFeeRate?: number;
+  taxRate?: number;
+}
+
+export interface ServiceSnapshot {
+  title: string;
+  price: number;
+  location: string;
+  category: string;
+  providerId: string;
+  images: string[];
+  serviceFeeRate?: number;
+  taxRate?: number;
 }
 
 export interface Booking {
@@ -34,8 +47,12 @@ export interface Booking {
   guests: number;
   status: string;
   totalPrice: number;
+  subtotal?: number;
+  serviceFee?: number;
+  taxes?: number;
   createdAt: Date;
   updatedAt: Date;
+  serviceSnapshot?: ServiceSnapshot;
 }
 
 export interface Review {

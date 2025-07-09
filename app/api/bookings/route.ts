@@ -6,22 +6,48 @@ import { ObjectId } from 'mongodb';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { serviceId, userId, checkIn, checkOut, guests, status, totalPrice } = body;
-    if (!serviceId || !userId || !checkIn || !checkOut || !guests || !status || !totalPrice) {
+    const { serviceId, userId, checkIn, checkOut, guests, status } = body;
+    if (!serviceId || !userId || !checkIn || !checkOut || !guests || !status) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     const client = await connectToDatabase();
     const db = client.db();
+    // Fetch the service to snapshot its details
+    const service = await db.collection('services').findOne({ _id: new ObjectId(serviceId) });
+    if (!service) {
+      return NextResponse.json({ error: 'Service not found' }, { status: 404 });
+    }
+    const serviceSnapshot = {
+      title: service.title,
+      price: service.price,
+      location: service.location,
+      category: service.category,
+      providerId: service.providerId,
+      images: service.images || [],
+      serviceFeeRate: service.serviceFeeRate ?? 0.1,
+      taxRate: service.taxRate ?? 0.05,
+    };
+    // Calculate booking cost breakdown using per-service rates
+    const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
+    const guestsCount = Number(guests);
+    const subtotal = service.price * nights * guestsCount;
+    const serviceFee = Math.round(subtotal * (service.serviceFeeRate ?? 0.1));
+    const taxes = Math.round(subtotal * (service.taxRate ?? 0.05));
+    const totalPrice = subtotal + serviceFee + taxes;
     const newBooking: Booking = {
       serviceId,
       userId,
       checkIn: new Date(checkIn),
       checkOut: new Date(checkOut),
-      guests: Number(guests),
+      guests: guestsCount,
       status,
-      totalPrice: Number(totalPrice),
+      totalPrice,
+      subtotal,
+      serviceFee,
+      taxes,
       createdAt: new Date(),
       updatedAt: new Date(),
+      serviceSnapshot,
     };
     const result = await db.collection('bookings').insertOne(newBooking);
     return NextResponse.json({ ...newBooking, id: result.insertedId.toString(), _id: result.insertedId }, { status: 201 });

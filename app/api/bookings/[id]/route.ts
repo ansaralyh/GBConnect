@@ -11,13 +11,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (!booking) {
       return NextResponse.json({ error: 'Booking not found' }, { status: 404 });
     }
-    // Fetch the service details
-    const service = await db.collection('services').findOne({ _id: new ObjectId(booking.serviceId) });
+    // Use the serviceSnapshot if present, otherwise fetch the service
+    let service = booking.serviceSnapshot || null;
+    if (!service) {
+      const serviceDoc = await db.collection('services').findOne({ _id: new ObjectId(booking.serviceId) });
+      service = serviceDoc ? { ...serviceDoc, id: serviceDoc._id?.toString?.() || serviceDoc.id } : null;
+    }
     return NextResponse.json({
       ...booking,
       id: booking._id?.toString?.() || booking.id,
       _id: booking._id?.toString?.() || booking.id,
-      service: service ? { ...service, id: service._id?.toString?.() || service.id } : null,
+      service,
     });
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch booking' }, { status: 500 });

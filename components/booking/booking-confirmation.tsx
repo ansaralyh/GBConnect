@@ -37,10 +37,11 @@ export function BookingConfirmation({ bookingId }: { bookingId: string }) {
 
   // Calculate prices
   const nights = booking.checkIn && booking.checkOut ? Math.ceil((new Date(booking.checkOut).getTime() - new Date(booking.checkIn).getTime()) / (1000 * 60 * 60 * 24)) : 1
-  const subtotal = service.price ? service.price * nights : 0
-  const serviceFee = Math.round(subtotal * 0.1)
-  const taxes = Math.round(subtotal * 0.05)
-  const total = subtotal + serviceFee + taxes
+  const price = service.price || 0
+  const subtotal = booking.subtotal ?? price * nights;
+  const serviceFee = booking.serviceFee ?? Math.round(subtotal * 0.1);
+  const taxes = booking.taxes ?? Math.round(subtotal * 0.05);
+  const total = booking.totalPrice ?? subtotal + serviceFee + taxes;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -109,7 +110,7 @@ export function BookingConfirmation({ bookingId }: { bookingId: string }) {
                       <div className="flex gap-4">
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md">
                           <Image
-                            src={service.image || "/placeholder.svg"}
+                            src={service.images?.[0] || "/placeholder.svg"}
                             alt={service.title}
                             fill
                             className="object-cover"
@@ -164,9 +165,9 @@ export function BookingConfirmation({ bookingId }: { bookingId: string }) {
                     <div className="space-y-2">
                       <div className="flex justify-between">
                         <span className="text-sm">
-                          ${service.price} x {nights} nights
+                          Rs {price.toLocaleString()} × {nights} night{nights > 1 ? "s" : ""} × {booking.guests} guest{booking.guests > 1 ? "s" : ""}
                         </span>
-                        <span className="text-sm">${subtotal}</span>
+                        <span className="text-sm">Rs {subtotal.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-sm">Service fee</span>
@@ -178,8 +179,8 @@ export function BookingConfirmation({ bookingId }: { bookingId: string }) {
                       </div>
                       <Separator className="my-2" />
                       <div className="flex justify-between font-semibold">
-                        <span>Total (USD)</span>
-                        <span>${total}</span>
+                        <span>Total</span>
+                        <span>Rs {total}</span>
                       </div>
                     </div>
                   </div>
