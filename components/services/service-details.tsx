@@ -16,6 +16,7 @@ export function ServiceDetails({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null)
   const [reviews, setReviews] = useState<any[]>([])
   const [loadingReviews, setLoadingReviews] = useState(true)
+  const [provider, setProvider] = useState<any>(null)
 
   useEffect(() => {
     async function fetchService() {
@@ -34,6 +35,23 @@ export function ServiceDetails({ id }: { id: string }) {
     }
     if (id) fetchService()
   }, [id])
+
+  useEffect(() => {
+    async function fetchProvider() {
+      if (service?.providerId) {
+        try {
+          const res = await fetch(`/api/user/profile?id=${service.providerId}`)
+          if (res.ok) {
+            const data = await res.json()
+            setProvider(data)
+          }
+        } catch {
+          setProvider(null)
+        }
+      }
+    }
+    fetchProvider()
+  }, [service])
 
   useEffect(() => {
     async function fetchReviews() {
@@ -266,21 +284,18 @@ export function ServiceDetails({ id }: { id: string }) {
                 <Button className="w-full">Book Now</Button>
               </Link>
 
+              {/* About the Provider section (replace the old one) */}
               <div className="mt-6">
                 <h3 className="font-semibold mb-3">About the Provider</h3>
-                <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center gap-4">
                   <img
-                    src={service.provider?.image || "/placeholder.svg"}
-                    alt={service.provider?.name || "Provider"}
-                    className="w-12 h-12 rounded-full"
+                    src={provider?.avatar || "/placeholder-user.jpg"}
+                    alt={provider?.name || "Provider"}
+                    className="h-12 w-12 rounded-full object-cover"
                   />
                   <div>
-                    <div className="font-medium">{service.provider?.name || "Unknown"}</div>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
-                      <span>{averageRating ? averageRating.toFixed(1) : "N/A"}</span>
-                      <span className="text-muted-foreground">({reviewCount} reviews)</span>
-                    </div>
+                    <div className="font-semibold">{provider?.name || "Unknown"}</div>
+                    <div className="text-sm text-muted-foreground">{provider?.email || ""}</div>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">{service.provider?.description || ""}</p>
