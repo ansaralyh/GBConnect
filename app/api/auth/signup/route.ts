@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 
-const uri = 'mongodb+srv://GBConnect:GBConnect@cluster0.3v0gb0g.mongodb.net/GBConnect';
+const uri = 'mongodb://localhost:27017/GBConnect';
 let cachedClient: MongoClient | null = null;
 
 async function connectToDatabase() {

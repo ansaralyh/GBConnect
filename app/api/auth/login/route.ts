@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 // mongodb+srv://aliyasmuhammad1122:aliyassajid@cluster0.cifooiu.mongodb.net
-const uri = 'mongodb+srv://GBConnect:GBConnect@cluster0.3v0gb0g.mongodb.net/GBConnect';
+const uri = 'mongodb://localhost:27017/GBConnect';
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
 let cachedClient: MongoClient | null = null;
 
