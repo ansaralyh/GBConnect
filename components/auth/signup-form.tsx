@@ -42,6 +42,9 @@ export function SignupForm() {
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
+  const [otpStep, setOtpStep] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [signupData, setSignupData] = useState<any>(null);
 
   const defaultRole = searchParams.get("role") === "provider" ? "provider" : "tourist"
 
@@ -59,16 +62,15 @@ export function SignupForm() {
     },
   })
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (step === 1) {
-      const { email, password, confirmPassword } = form.getValues()
-      const isValid = form.trigger(["email", "password", "confirmPassword"])
-
+      const { email, password, confirmPassword } = form.getValues();
+      const isValid = await form.trigger(["email", "password", "confirmPassword"]);
       if (isValid && password === confirmPassword) {
-        setStep(2)
+        setStep(2);
       }
     }
-  }
+  };
 
   const prevStep = () => {
     if (step > 1) {
@@ -76,25 +78,61 @@ export function SignupForm() {
     }
   }
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true)
+  async function handleSignup(values: z.infer<typeof formSchema>) {
+    setIsLoading(true);
     try {
-      await register(values)
-      toast({
-        title: "Registration successful",
-        description: "Welcome to GBConnect!",
-      })
-
-      // Redirect to login page after successful registration
-      router.push("/login")
+      // Send signup data to backend to trigger OTP
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: values.email,
+          password: values.password,
+          userType: values.role,
+          name: values.name,
+          phone: values.phone,
+          location: values.location,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSignupData({ ...values });
+        setOtpStep(true);
+        toast({ title: "OTP sent!", description: "Check your email for the OTP code." });
+      } else {
+        toast({ variant: "destructive", title: "Signup failed", description: data.error || "Unknown error" });
+      }
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: "Please check your information and try again.",
-      })
+      toast({ variant: "destructive", title: "Signup failed", description: "Network error" });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!signupData) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: signupData.email,
+          otp,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: "Registration successful!", description: "You can now log in." });
+        router.push("/login");
+      } else {
+        toast({ variant: "destructive", title: "OTP verification failed", description: data.error || "Unknown error" });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "OTP verification failed", description: "Network error" });
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -154,217 +192,237 @@ export function SignupForm() {
             </div>
           </div>
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {step === 1 && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Enter your email" className="pl-9" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input type="password" placeholder="Create a password" className="pl-9" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input type="password" placeholder="Confirm your password" className="pl-9" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <Button type="button" className="w-full" onClick={nextStep}>
-                    Continue
-                  </Button>
-                </>
-              )}
-
-              {step === 2 && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Enter your full name" className="pl-9" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="phone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Phone Number (Optional)</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Enter your phone number" className="pl-9" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <FormControl>
-                          <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Enter your location" className="pl-9" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="role"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>I am a</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            value={field.value}
-                            className="grid grid-cols-2 gap-4"
-                          >
-                            <FormItem>
-                              <FormControl>
-                                <div
-                                  className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border p-4 hover:border-primary ${field.value === "tourist" ? "border-2 border-primary bg-primary/5" : ""}`}
-                                  onClick={() => field.onChange("tourist")}
-                                  role="button"
-                                  tabIndex={0}
-                                  onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') field.onChange("tourist") }}
-                                >
-                                  <RadioGroupItem value="tourist" id="tourist" className="sr-only" />
-                                  <UserCircle2 className="mb-2 h-6 w-6 text-primary" />
-                                  <FormLabel htmlFor="tourist" className="cursor-pointer font-normal">
-                                    Tourist
-                                  </FormLabel>
-                                </div>
-                              </FormControl>
-                            </FormItem>
-                            <FormItem>
-                              <FormControl>
-                                <div
-                                  className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border p-4 hover:border-primary ${field.value === "provider" ? "border-2 border-primary bg-primary/5" : ""}`}
-                                  onClick={() => field.onChange("provider")}
-                                  role="button"
-                                  tabIndex={0}
-                                  onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') field.onChange("provider") }}
-                                >
-                                  <RadioGroupItem value="provider" id="provider" className="sr-only" />
-                                  <Building2 className="mb-2 h-6 w-6 text-primary" />
-                                  <FormLabel htmlFor="provider" className="cursor-pointer font-normal">
-                                    Service Provider
-                                  </FormLabel>
-                                </div>
-                              </FormControl>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="termsAccepted"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-2 space-y-0">
-                        <FormControl>
-                          <Checkbox checked={field.value} onCheckedChange={field.onChange} />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel className="text-sm font-normal">
-                            I agree to the{" "}
-                            <Link href="/terms" className="font-medium text-primary hover:underline">
-                              Terms of Service
-                            </Link>{" "}
-                            and{" "}
-                            <Link href="/privacy" className="font-medium text-primary hover:underline">
-                              Privacy Policy
-                            </Link>
-                          </FormLabel>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="flex gap-4">
-                    <Button type="button" variant="outline" className="w-full" onClick={prevStep}>
-                      Back
-                    </Button>
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Creating account...
-                        </>
-                      ) : (
-                        "Create Account"
+          {!otpStep ? (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSignup)} className="space-y-4">
+                {step === 1 && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input placeholder="Enter your email" className="pl-9" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
                       )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input type="password" placeholder="Create a password" className="pl-9" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input type="password" placeholder="Confirm your password" className="pl-9" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <Button type="button" className="w-full" onClick={nextStep}>
+                      Continue
                     </Button>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+
+                {step === 2 && (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input placeholder="Enter your full name" className="pl-9" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number (Optional)</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input placeholder="Enter your phone number" className="pl-9" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="location"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Location</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                              <Input placeholder="Enter your location" className="pl-9" {...field} />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel>I am a</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              className="grid grid-cols-2 gap-4"
+                            >
+                              <FormItem>
+                                <FormControl>
+                                  <div
+                                    className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border p-4 hover:border-primary ${field.value === "tourist" ? "border-2 border-primary bg-primary/5" : ""}`}
+                                    onClick={() => field.onChange("tourist")}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') field.onChange("tourist") }}
+                                  >
+                                    <RadioGroupItem value="tourist" id="tourist" className="sr-only" />
+                                    <UserCircle2 className="mb-2 h-6 w-6 text-primary" />
+                                    <FormLabel htmlFor="tourist" className="cursor-pointer font-normal">
+                                      Tourist
+                                    </FormLabel>
+                                  </div>
+                                </FormControl>
+                              </FormItem>
+                              <FormItem>
+                                <FormControl>
+                                  <div
+                                    className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border p-4 hover:border-primary ${field.value === "provider" ? "border-2 border-primary bg-primary/5" : ""}`}
+                                    onClick={() => field.onChange("provider")}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyPress={e => { if (e.key === 'Enter' || e.key === ' ') field.onChange("provider") }}
+                                  >
+                                    <RadioGroupItem value="provider" id="provider" className="sr-only" />
+                                    <Building2 className="mb-2 h-6 w-6 text-primary" />
+                                    <FormLabel htmlFor="provider" className="cursor-pointer font-normal">
+                                      Service Provider
+                                    </FormLabel>
+                                  </div>
+                                </FormControl>
+                              </FormItem>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="termsAccepted"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-2 space-y-0">
+                          <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                          <div className="space-y-1 leading-none">
+                            <FormLabel className="text-sm font-normal">
+                              I agree to the{" "}
+                              <Link href="/terms" className="font-medium text-primary hover:underline">
+                                Terms of Service
+                              </Link>{" "}
+                              and{" "}
+                              <Link href="/privacy" className="font-medium text-primary hover:underline">
+                                Privacy Policy
+                              </Link>
+                            </FormLabel>
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex gap-4">
+                      <Button type="button" variant="outline" className="w-full" onClick={prevStep}>
+                        Back
+                      </Button>
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Creating account...
+                          </>
+                        ) : (
+                          "Create Account"
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </form>
+            </Form>
+          ) : (
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div className="mb-4">
+                <label htmlFor="otp" className="block text-sm font-medium">Enter OTP sent to your email</label>
+                <Input
+                  id="otp"
+                  type="text"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value)}
+                  maxLength={6}
+                  className="mt-2"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : "Verify OTP & Create Account"}
+              </Button>
             </form>
-          </Form>
+          )}
 
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
