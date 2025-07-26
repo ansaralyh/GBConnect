@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { Calendar, ChevronRight, Plus, Users, Check, X, BarChart3, ShoppingBag, MessageSquare } from "lucide-react"
+import { Calendar, ChevronRight, Plus, Users, Check, X, BarChart3, ShoppingBag, MessageSquare, LogOut } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -25,6 +25,8 @@ export function ProviderDashboard() {
   const [totalServices, setTotalServices] = useState(0)
   const [bookings, setBookings] = useState<any[]>([])
   const [loadingBookings, setLoadingBookings] = useState(false)
+  const [totalRevenue, setTotalRevenue] = useState(0)
+  const [pendingBookings, setPendingBookings] = useState(0)
 
   useEffect(() => {
     // Check if user is authenticated
@@ -73,6 +75,17 @@ export function ProviderDashboard() {
         if (!res.ok) throw new Error('Failed to fetch bookings');
         const data = await res.json();
         setBookings(data);
+        
+        // Calculate dynamic metrics
+        const revenue = data.reduce((sum: number, booking: any) => {
+          return sum + (Number(booking.totalPrice) || 0);
+        }, 0);
+        setTotalRevenue(revenue);
+        
+        const pending = data.filter((booking: any) => 
+          booking.status === 'pending' || booking.status === 'confirmed'
+        ).length;
+        setPendingBookings(pending);
       })
       .catch(() => setBookings([]))
       .finally(() => setLoadingBookings(false));
@@ -109,6 +122,11 @@ export function ProviderDashboard() {
     }
   };
 
+  // Helper function to format PKR
+  const formatPKR = (amount: number) => {
+    return `Rs ${amount.toLocaleString('en-PK')}`;
+  };
+
   if (!user || user.role !== "provider") {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
@@ -131,10 +149,17 @@ export function ProviderDashboard() {
     <div className="flex">
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col w-56 min-h-screen bg-muted/40 border-r mr-8 p-6">
-        <nav className="flex flex-col gap-4">
+        <nav className="flex flex-col gap-4 flex-1">
           <Link href="/dashboard/provider" className="font-medium text-base hover:text-primary">Dashboard</Link>
           <Link href="/dashboard/provider/services" className="font-medium text-base hover:text-primary">Services</Link>
           <Link href="/dashboard/provider/settings" className="font-medium text-base hover:text-primary">Settings</Link>
+          
+          {/* Logout button at bottom */}
+          <div className="mt-auto pt-4 border-t">
+            <Button variant="outline" onClick={handleLogout} className="w-full justify-start">
+              <LogOut className="mr-2 h-4 w-4" /> Logout
+            </Button>
+          </div>
         </nav>
       </aside>
       {/* Main Content */}
@@ -181,7 +206,7 @@ export function ProviderDashboard() {
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">0</div>
+                    <div className="text-2xl font-bold">{pendingBookings}</div>
                     <p className="text-xs text-muted-foreground">&nbsp;</p>
                   </CardContent>
                 </Card>
@@ -192,7 +217,7 @@ export function ProviderDashboard() {
                     <BarChart3 className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">Rs 0</div>
+                    <div className="text-2xl font-bold">{formatPKR(totalRevenue)}</div>
                     <p className="text-xs text-muted-foreground">&nbsp;</p>
                   </CardContent>
                 </Card>
@@ -232,7 +257,7 @@ export function ProviderDashboard() {
                           />
                           <div className="flex-1">
                             <div className="font-medium text-sm">{booking.service?.title || "Service"}</div>
-                            <div className="text-xs text-muted-foreground">Guest: {booking.userId} &bull; {booking.status}</div>
+                            <div className="text-xs text-muted-foreground">Guest: {booking.guestName || 'Unknown Guest'} &bull; {booking.status}</div>
                           </div>
                         </div>
                       ))}
@@ -294,9 +319,9 @@ export function ProviderDashboard() {
                               </div>
                             </div>
                             <div className="flex flex-col items-end gap-2">
-                              <div className="text-sm">Guest: {booking.userId}</div>
+                              <div className="text-sm">Guest: {booking.guestName || 'Unknown Guest'}</div>
                               <div className="text-sm">Guests: {booking.guests}</div>
-                              <div className="text-sm font-semibold">Total: {booking.totalPrice}</div>
+                              <div className="text-sm font-semibold">Total: {formatPKR(Number(booking.totalPrice) || 0)}</div>
                             </div>
                           </div>
                         ))}
@@ -349,7 +374,7 @@ export function ProviderDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="mb-2">{service.description}</div>
-                    <div className="mb-2 font-semibold">Price: {service.price}</div>
+                    <div className="mb-2 font-semibold">Price: {formatPKR(Number(service.price) || 0)}</div>
                     <div className="mb-2">Location: {service.location}</div>
                     {/* Images preview */}
                     {service.images && service.images.length > 0 && (

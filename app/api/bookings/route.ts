@@ -28,12 +28,43 @@ export async function POST(req: NextRequest) {
       taxRate: service.taxRate ?? 0.05,
     };
     // Calculate booking cost breakdown using per-service rates
-    const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24));
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    
+    // Calculate nights more accurately (inclusive of check-in, exclusive of check-out)
+    const nights = Math.max(1, Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24)));
+    
     const guestsCount = Number(guests);
-    const subtotal = service.price * nights * guestsCount;
-    const serviceFee = Math.round(subtotal * (service.serviceFeeRate ?? 0.1));
-    const taxes = Math.round(subtotal * (service.taxRate ?? 0.05));
-    const totalPrice = subtotal + serviceFee + taxes;
+    const basePrice = Number(service.price) || 0;
+    
+    // Calculate subtotal based on pricing model
+    // Default: per night per guest, but can be customized per service
+    const pricingModel = service.pricingModel || 'per_night_per_guest'; // per_night_per_guest, per_night_total, per_booking
+    
+    let subtotal = 0;
+    switch (pricingModel) {
+      case 'per_night_total':
+        // Total price for the entire stay regardless of guests
+        subtotal = basePrice * nights;
+        break;
+      case 'per_booking':
+        // Fixed price for the entire booking
+        subtotal = basePrice;
+        break;
+      case 'per_night_per_guest':
+      default:
+        // Price per night per guest (most common for accommodations)
+        subtotal = basePrice * nights * guestsCount;
+        break;
+    }
+    
+    // Calculate fees and taxes with proper precision - all dynamic from service data
+    const serviceFeeRate = Number(service.serviceFeeRate) || 0; // Use service's fee rate or 0 if not set
+    const taxRate = Number(service.taxRate) || 0; // Use service's tax rate or 0 if not set
+    
+    const serviceFee = Math.round(subtotal * serviceFeeRate * 100) / 100; // Round to 2 decimal places
+    const taxes = Math.round(subtotal * taxRate * 100) / 100; // Round to 2 decimal places
+    const totalPrice = Math.round((subtotal + serviceFee + taxes) * 100) / 100; // Round to 2 decimal places
     const newBooking: Booking = {
       serviceId,
       userId,
@@ -65,27 +96,100 @@ export async function GET(req: NextRequest) {
     const client = await connectToDatabase();
     const db = client.db();
     let bookings = [];
+    
     if (userId) {
-      bookings = await db.collection('bookings').find({ userId }).toArray();
+      // For user bookings, use aggregation to get service details
+      bookings = await db.collection('bookings').aggregate([
+        { $match: { userId } },
+        {
+          $lookup: {
+            from: 'services',
+            localField: 'serviceId',
+            foreignField: '_id',
+            as: 'service'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            let: { userId: '$userId' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $or: [
+                      { $eq: ['$_id', { $toObjectId: '$$userId' }] },
+                      { $eq: ['$_id', '$$userId'] }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: 'user'
+          }
+        },
+        { $unwind: { path: '$service', preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } }
+      ]).toArray();
     } else if (providerId) {
-      // Find all services owned by this provider
+      // For provider bookings, use aggregation to get both service and user details
       const services = await db.collection('services').find({ providerId }).toArray();
       const serviceIds = services.map(s => s._id.toString());
-      bookings = await db.collection('bookings').find({ serviceId: { $in: serviceIds } }).toArray();
+      
+      bookings = await db.collection('bookings').aggregate([
+        { $match: { serviceId: { $in: serviceIds } } },
+        {
+          $lookup: {
+            from: 'services',
+            localField: 'serviceId',
+            foreignField: '_id',
+            as: 'service'
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            let: { userId: '$userId' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $or: [
+                      { $eq: ['$_id', { $toObjectId: '$$userId' }] },
+                      { $eq: ['$_id', '$$userId'] }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: 'user'
+          }
+        },
+        { $unwind: { path: '$service', preserveNullAndEmptyArrays: true } },
+        { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } }
+      ]).toArray();
     } else {
       return NextResponse.json({ error: 'Missing userId or providerId' }, { status: 400 });
     }
-    // Fetch all services and map by _id
-    const services = await db.collection('services').find({}).toArray();
-    const serviceMap = Object.fromEntries(services.map(s => [s._id.toString(), s]));
-    const mappedBookings = bookings.map((booking) => ({
-      ...booking,
-      id: booking._id?.toString?.() || booking.id,
-      _id: booking._id?.toString?.() || booking.id,
-      service: serviceMap[booking.serviceId],
-    }));
+    
+    const mappedBookings = bookings.map((booking) => {
+      // Debug logging
+      console.log('Booking userId:', booking.userId);
+      console.log('User lookup result:', booking.user);
+      
+      return {
+        ...booking,
+        id: booking._id?.toString?.() || booking.id,
+        _id: booking._id?.toString?.() || booking.id,
+        // Include user info for guest name
+        guestName: booking.user?.name || 'Unknown Guest',
+        guestEmail: booking.user?.email || '',
+      };
+    });
+    
     return NextResponse.json(mappedBookings);
   } catch (error) {
+    console.error('Error fetching bookings:', error);
     return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 });
   }
 } 

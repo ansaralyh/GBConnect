@@ -289,13 +289,13 @@ export function ServiceDetails({ id }: { id: string }) {
                 <h3 className="font-semibold mb-3">About the Provider</h3>
                 <div className="flex items-center gap-4">
                   <img
-                    src={provider?.avatar || "/placeholder-user.jpg"}
-                    alt={provider?.name || "Provider"}
+                    src="/placeholder-user.jpg"
+                    alt={service.providerName || "Provider"}
                     className="h-12 w-12 rounded-full object-cover"
                   />
                   <div>
-                    <div className="font-semibold">{provider?.name || "Unknown"}</div>
-                    <div className="text-sm text-muted-foreground">{provider?.email || ""}</div>
+                    <div className="font-semibold">{service.providerName || "Unknown Provider"}</div>
+                    <div className="text-sm text-muted-foreground">{service.providerEmail || ""}</div>
                   </div>
                 </div>
                 <p className="text-sm text-muted-foreground">{service.provider?.description || ""}</p>

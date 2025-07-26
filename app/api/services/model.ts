@@ -19,7 +19,7 @@ export interface Service {
   images: string[];
   category: string;
   location: string;
-  providerId: string;
+  providerId: ObjectId | string; // Can be either ObjectId or string for flexibility
   createdAt: Date;
   updatedAt: Date;
   status?: string;

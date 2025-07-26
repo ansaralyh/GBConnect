@@ -65,6 +65,7 @@ export function ServiceListings() {
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to fetch services")
         let data = await res.json()
+        console.log('Fetched services:', data) // Debug log
         // Map _id to id for each service
         data = data.map((service: any) => ({
           ...service,
@@ -72,7 +73,8 @@ export function ServiceListings() {
         }))
         setServices(data)
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error fetching services:', error) // Debug log
         setServices([])
         setError("Failed to load services. Please try again.")
       })
@@ -86,12 +88,17 @@ export function ServiceListings() {
 
     // Filter by location
     if (location) {
-      filtered = filtered.filter((service) => service.location.toLowerCase().includes(location.toLowerCase()))
+      filtered = filtered.filter((service) => 
+        service.location && service.location.toLowerCase().includes(location.toLowerCase())
+      )
     }
 
-    // Filter by service type
-    if (serviceType) {
-      filtered = filtered.filter((service) => service.type === serviceType)
+    // Filter by service type/category
+    if (serviceType && serviceType !== "All") {
+      filtered = filtered.filter((service) => 
+        (service.type && service.type === serviceType) || 
+        (service.category && service.category.toLowerCase() === serviceType.toLowerCase())
+      )
     }
 
     // Filter by price range (simplified for demo)
@@ -104,26 +111,29 @@ export function ServiceListings() {
 
     // Filter by amenities
     if (amenities.length > 0) {
-      filtered = filtered.filter((service) => amenities.every((amenity) => service.amenities.includes(amenity)))
+      filtered = filtered.filter((service) => 
+        service.amenities && amenities.every((amenity) => service.amenities.includes(amenity))
+      )
     }
 
     // Sort results
     switch (sortBy) {
       case "price-low":
         // Simplified sorting for demo
-        filtered.sort((a, b) => a.price.length - b.price.length)
+        filtered.sort((a, b) => (a.price || 0) - (b.price || 0))
         break
       case "price-high":
-        filtered.sort((a, b) => b.price.length - a.price.length)
+        filtered.sort((a, b) => (b.price || 0) - (a.price || 0))
         break
       case "rating":
-        filtered.sort((a, b) => b.rating - a.rating)
+        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0))
         break
       default:
         // Default "recommended" sorting
         break
     }
 
+    console.log('Filtered services:', filtered) // Debug log
     setFilteredServices(filtered)
   }, [location, serviceType, priceRange, minRating, amenities, sortBy, services])
 
@@ -671,7 +681,7 @@ export function ServiceListings() {
                           </div>
                         </CardContent>
                         <CardFooter className="flex justify-between items-center pt-0">
-                          <div className="text-sm text-muted-foreground">By {service.provider?.name ?? "Unknown"}</div>
+                          <div className="text-sm text-muted-foreground">By {service.providerName || "Unknown Provider"}</div>
                           <div className="font-semibold">{formatCurrency(service.price)}</div>
                         </CardFooter>
                       </Card>

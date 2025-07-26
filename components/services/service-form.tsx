@@ -160,6 +160,15 @@ export function ServiceForm({ mode, serviceId }: { mode: "create" | "edit"; serv
       });
       return;
     }
+    
+    // Debug: Log user information
+    console.log('Creating service with user:', {
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      userRole: user.role
+    });
+    
     setIsLoading(true);
     try {
       if (mode === "create") {
