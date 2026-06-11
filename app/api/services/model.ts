@@ -1,14 +1,44 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
-const uri = 'mongodb://localhost:27017/GBConnect';
+const uri = process.env.MONGO_URI?.trim() || 'mongodb://localhost:27017/GBConnect';
 let cachedClient: MongoClient | null = null;
 
+function maskUri(connectionUri: string) {
+  return connectionUri.replace(/\/\/([^:@/]+):([^@/]+)@/, '//$1:***@');
+}
+
 export async function connectToDatabase() {
-  if (cachedClient) return cachedClient;
-  const client = new MongoClient(uri);
-  await client.connect();
-  cachedClient = client;
-  return client;
+  if (cachedClient) {
+    console.log('[DB] Using cached MongoDB connection');
+    return cachedClient;
+  }
+
+  console.log('[DB] Connecting to MongoDB:', maskUri(uri));
+
+  const options = {
+    serverSelectionTimeoutMS: 15000,
+    family: 4,
+  };
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const client = new MongoClient(uri, options);
+      await client.connect();
+      await client.db().command({ ping: 1 });
+      console.log('[DB] MongoDB connected successfully');
+      cachedClient = client;
+      return client;
+    } catch (error) {
+      lastError = error;
+      console.error(`[DB] MongoDB connection attempt ${attempt} failed:`, error instanceof Error ? error.message : error);
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  }
+
+  throw lastError;
 }
 
 export interface Service {

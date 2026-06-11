@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-// mongodb+srv://aliyasmuhammad1122:aliyassajid@cluster0.cifooiu.mongodb.net
-const uri = 'mongodb://localhost:27017/GBConnect';
-const JWT_SECRET = process.env.JWT_SECRET || 'dev_secret';
-let cachedClient: MongoClient | null = null;
+import { connectToDatabase } from '../../services/model';
 
-async function connectToDatabase() {
-  if (cachedClient) return cachedClient;
-  const client = new MongoClient(uri);
-  await client.connect();
-  cachedClient = client;
-  return client;
-}
+const JWT_SECRET = process.env.JWT_SECRET?.trim() || 'dev_secret';
 
 export async function POST(req: NextRequest) {
   let email = undefined;

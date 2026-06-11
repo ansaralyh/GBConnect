@@ -1,18 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
 import bcrypt from 'bcryptjs';
 import nodemailer from 'nodemailer';
-
-const uri = 'mongodb://localhost:27017/GBConnect';
-let cachedClient: MongoClient | null = null;
-
-async function connectToDatabase() {
-  if (cachedClient) return cachedClient;
-  const client = new MongoClient(uri);
-  await client.connect();
-  cachedClient = client;
-  return client;
-}
+import { connectToDatabase } from '../../services/model';
 
 // Helper to generate a 6-digit OTP
 function generateOTP() {
@@ -21,46 +10,62 @@ function generateOTP() {
 
 // Helper to send OTP email
 async function sendOtpEmail(email: string, otp: string) {
+  const emailUser = process.env.EMAIL_USER?.trim();
+  const emailPass = process.env.EMAIL_PASS?.trim();
+  const emailHost = process.env.EMAIL_HOST?.trim() || 'smtp.gmail.com';
+  const emailPort = Number(process.env.EMAIL_PORT || 465);
+
+  if (!emailUser || !emailPass) {
+    console.log('[Signup] EMAIL_USER/EMAIL_PASS not set — OTP for', email, ':', otp);
+    return;
+  }
+
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: emailHost,
+    port: emailPort,
+    secure: emailPort === 465,
     auth: {
-      user: 'ansaralyh@gmail.com',
-      pass: 'vsld xkwv xcam tmzr',
+      user: emailUser,
+      pass: emailPass,
     },
   });
   await transporter.sendMail({
-    from: 'Ansar Ali <ansaralyh@gmail.com>',
+    from: `GBConnect <${emailUser}>`,
     to: email,
-    subject: 'Your OTP Code',
+    subject: 'Your GBConnect OTP Code',
     text: `Your OTP code is: ${otp}`,
+    html: `<p>Your OTP code is: <b>${otp}</b></p><p>This code is valid for 10 minutes.</p>`,
   });
+  console.log('[Signup] OTP email sent to', email);
 }
 
 // POST: Send OTP
 export async function POST(req: NextRequest) {
   try {
     const { email, password, userType, name, phone, location } = await req.json();
+    console.log('[Signup] POST request for', email);
     if (!email || !password || !userType) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+    console.log('[Signup] Connecting to database...');
     const client = await connectToDatabase();
     const db = client.db();
     const users = db.collection('users');
     const otps = db.collection('emailOtps');
     const existingUser = await users.findOne({ email });
     if (existingUser) {
+      console.log('[Signup] User already exists:', email);
       return NextResponse.json({ error: 'User already exists' }, { status: 409 });
     }
-    // Remove any previous OTPs for this email
     await otps.deleteMany({ email });
-    // Generate and store OTP
     const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await otps.insertOne({ email, otp, expiresAt: otpExpiry, password, userType, name, phone, location });
-    // Send OTP email
+    console.log('[Signup] OTP stored in database for', email);
     await sendOtpEmail(email, otp);
     return NextResponse.json({ message: 'OTP sent to your email. Please verify to complete signup.' }, { status: 200 });
   } catch (error) {
+    console.error('[Signup] POST error:', error instanceof Error ? error.message : error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -106,6 +111,7 @@ export async function PUT(req: NextRequest) {
     await otps.deleteOne({ email, otp });
     return NextResponse.json({ message: 'User registered and verified successfully' }, { status: 201 });
   } catch (error) {
+    console.error('[Signup] PUT error:', error instanceof Error ? error.message : error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 
