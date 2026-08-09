@@ -4,65 +4,73 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Cool mist stone — alpine, not cream */
+    --background: 150 14% 97%;
+    --foreground: 160 28% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 160 28% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 160 28% 10%;
 
-    --primary: 142 88% 13%; /* Pakistani green */
-    --primary-foreground: 210 40% 98%;
+    /* Deep pine */
+    --primary: 152 62% 18%;
+    --primary-foreground: 150 20% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 155 18% 92%;
+    --secondary-foreground: 152 40% 16%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 150 12% 93%;
+    --muted-foreground: 155 10% 40%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Glacier teal accent */
+    --accent: 188 42% 92%;
+    --accent-foreground: 188 55% 22%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 142 88% 13%; /* Pakistani green */
+    --border: 150 12% 88%;
+    --input: 150 12% 88%;
+    --ring: 152 62% 18%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    --gb-pine: 152 62% 18%;
+    --gb-glacier: 188 55% 38%;
+    --gb-stone: 35 8% 55%;
+    --gb-mist: 150 14% 97%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 160 25% 7%;
+    --foreground: 150 15% 96%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 160 22% 10%;
+    --card-foreground: 150 15% 96%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 160 22% 10%;
+    --popover-foreground: 150 15% 96%;
 
-    --primary: 142 70% 20%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 152 45% 42%;
+    --primary-foreground: 160 30% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 160 18% 16%;
+    --secondary-foreground: 150 15% 96%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 160 18% 16%;
+    --muted-foreground: 150 10% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 188 30% 18%;
+    --accent-foreground: 188 40% 80%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 142 70% 20%;
+    --border: 160 18% 18%;
+    --input: 160 18% 18%;
+    --ring: 152 45% 42%;
   }
 }
 
@@ -70,22 +78,74 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 100% -20%, hsl(188 40% 88% / 0.45), transparent),
+      radial-gradient(ellipse 60% 40% at 0% 100%, hsl(152 30% 88% / 0.35), transparent);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gb-grain {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
   }
 }
 
 .hero-gradient {
-  background: linear-gradient(to bottom, rgba(1, 65, 28, 0.7), rgba(0, 0, 0, 0.7));
-}
-
-/* Custom styles for the landing page */
-.service-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  transition: all 0.3s ease;
+  background: linear-gradient(
+    to top,
+    hsl(160 28% 6% / 0.78) 0%,
+    hsl(152 35% 10% / 0.55) 40%,
+    hsl(160 28% 8% / 0.4) 70%,
+    hsl(160 28% 6% / 0.55) 100%
+  );
 }
 
 .service-card {
-  transition: all 0.3s ease;
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
 }
+
+.service-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -20px hsl(152 40% 12% / 0.25);
+}
+
+@keyframes kenburns {
+  from { transform: scale(1); }
+  to { transform: scale(1.08); }
+}
+
+.animate-kenburns {
+  animation: kenburns 18s ease-out forwards;
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-reveal {
+  animation: reveal-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-reveal-delay-1 { animation-delay: 0.12s; }
+.animate-reveal-delay-2 { animation-delay: 0.24s; }
+.animate-reveal-delay-3 { animation-delay: 0.36s; }
+.animate-reveal-delay-4 { animation-delay: 0.48s; }

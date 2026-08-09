@@ -17,8 +17,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/components/ui/use-toast"
-import { MainNav } from "@/components/main-nav"
-import { Footer } from "@/components/footer"
 import { useAuth } from "@/context/auth-context"
 import { DatePicker } from "@/components/ui/date-picker"
 import { formatCurrency } from "@/lib/utils"
@@ -199,28 +197,6 @@ export function BookingProcess({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center">
-          <MainNav />
-          <div className="ml-auto flex items-center space-x-4">
-            {user ? (
-              <Link href="/dashboard/tourist" className="flex items-center gap-2">
-                <span className="text-sm font-medium">{user.name}</span>
-              </Link>
-            ) : (
-              <>
-                <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                  Login
-                </Link>
-                <Button asChild>
-                  <Link href="/signup">Sign Up</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
       <main className="flex-1 bg-muted/30 py-8">
         <div className="container">
           <div className="mb-6">
@@ -707,8 +683,6 @@ export function BookingProcess({ serviceId }: { serviceId: string }) {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

@@ -4,8 +4,6 @@ import { Mail, Phone, MapPin, Clock, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { MainNav } from "@/components/main-nav"
-import { Footer } from "@/components/footer"
 
 export const metadata: Metadata = {
   title: "Contact Us | GBConnect",
@@ -15,9 +13,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNav />
-
-      <main className="flex-1 pt-16">
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="bg-muted py-16 md:py-24">
           <div className="container">
@@ -202,8 +198,6 @@ export default function ContactPage() {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   )
 }

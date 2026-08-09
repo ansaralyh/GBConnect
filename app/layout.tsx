@@ -1,14 +1,24 @@
 import type React from "react"
-import { Inter } from "next/font/google"
+import { Sora, Manrope } from "next/font/google"
 import "./globals.css"
 import { Providers } from "@/components/providers"
+import { SiteShell } from "@/components/site-shell"
 
-const inter = Inter({ subsets: ["latin"] })
+const sora = Sora({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+})
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+})
 
 export const metadata = {
   title: "GBConnect - Connect with Local Service Providers in Gilgit Baltistan",
   description: "Discover authentic local experiences and connect with trusted service providers in Gilgit Baltistan.",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -18,8 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
-        <Providers>{children}</Providers>
+      <body className={`${sora.variable} ${manrope.variable} font-sans`}>
+        <Providers>
+          <SiteShell>{children}</SiteShell>
+        </Providers>
       </body>
     </html>
   )

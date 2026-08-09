@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -15,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/components/ui/use-toast"
-import { useAuth } from "@/context/auth-context"
 
 const formSchema = z
   .object({
@@ -36,15 +34,11 @@ const formSchema = z
   })
 
 export function SignupForm() {
-  const { register } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const [step, setStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
-  const [otpStep, setOtpStep] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [signupData, setSignupData] = useState<any>(null);
 
   const defaultRole = searchParams.get("role") === "provider" ? "provider" : "tourist"
 
@@ -81,7 +75,6 @@ export function SignupForm() {
   async function handleSignup(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      // Send signup data to backend to trigger OTP
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -96,9 +89,8 @@ export function SignupForm() {
       });
       const data = await res.json();
       if (res.ok) {
-        setSignupData({ ...values });
-        setOtpStep(true);
-        toast({ title: "OTP sent!", description: "Check your email for the OTP code." });
+        toast({ title: "Account created!", description: "You can now log in." });
+        router.push("/login");
       } else {
         toast({ variant: "destructive", title: "Signup failed", description: data.error || "Unknown error" });
       }
@@ -109,91 +101,63 @@ export function SignupForm() {
     }
   }
 
-  async function handleVerifyOtp(e: React.FormEvent) {
-    e.preventDefault();
-    if (!signupData) return;
-    setIsLoading(true);
-    try {
-      const res = await fetch("/api/auth/signup", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: signupData.email,
-          otp,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        toast({ title: "Registration successful!", description: "You can now log in." });
-        router.push("/login");
-      } else {
-        toast({ variant: "destructive", title: "OTP verification failed", description: data.error || "Unknown error" });
-      }
-    } catch (error) {
-      toast({ variant: "destructive", title: "OTP verification failed", description: "Network error" });
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   return (
-    <div className="container flex h-screen w-full flex-col items-center justify-center">
-      <div className="mx-auto grid w-full max-w-[1000px] gap-6 rounded-lg border bg-card p-10 shadow-lg md:grid-cols-2">
-        <div className="relative hidden overflow-hidden rounded-l-lg md:block">
+    <div className="relative flex min-h-screen w-full items-center justify-center px-4 py-12">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-[hsl(var(--gb-glacier))/0.15]" />
+      <div className="relative mx-auto grid w-full max-w-5xl overflow-hidden rounded-3xl border border-border/60 bg-card shadow-2xl shadow-primary/10 md:grid-cols-2">
+        <div className="relative hidden min-h-[560px] md:block">
           <div
             className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: "url('/placeholder.svg?height=600&width=500')",
-              backgroundPosition: "center",
-              backgroundSize: "cover",
-            }}
-          >
-            <div className="absolute inset-0 bg-primary/40"></div>
-          </div>
-
-          <div className="relative z-10 flex h-full flex-col justify-between p-6 text-white">
-            <div>
-              <Mountain className="h-8 w-8" />
+            style={{ backgroundImage: "url('/images/landing-image.jpeg')" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-primary/90 via-primary/45 to-primary/20" />
+          <div className="relative z-10 flex h-full flex-col justify-between p-8 text-white">
+            <div className="flex items-center gap-2">
+              <Mountain className="h-7 w-7" />
+              <span className="font-display text-lg font-semibold">GBConnect</span>
             </div>
             <div>
-              <h2 className="text-2xl font-bold">Join GBConnect and explore the heart of Gilgit Baltistan</h2>
-              <p className="mt-2">Create an account to discover authentic experiences and connect with locals</p>
+              <h2 className="font-display text-3xl font-semibold leading-tight">
+                Join the heart of Gilgit Baltistan
+              </h2>
+              <p className="mt-3 text-white/85">
+                Create an account to discover stays, guides, and meals from local hosts.
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col justify-center">
-          <div className="mb-8 text-center">
-            <div className="mb-2 flex items-center justify-center md:hidden">
+        <div className="flex flex-col justify-center p-8 sm:p-10">
+          <div className="mb-6 text-center md:text-left">
+            <div className="mb-3 flex items-center justify-center md:hidden">
               <Mountain className="mr-2 h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">GBconnect</span>
+              <span className="font-display text-xl font-semibold">GBConnect</span>
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight">Sign Up</h1>
-            <p className="text-sm text-muted-foreground">Join GBconnect and explore the heart of Gilgit Baltistan</p>
+            <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">Create account</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Two quick steps and you&apos;re ready to go</p>
           </div>
 
           <div className="mb-6">
             <div className="flex items-center justify-between">
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${step >= 1 ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium ${step >= 1 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
               >
                 1
               </div>
-              <div className={`h-1 flex-1 ${step >= 2 ? "bg-primary" : "bg-muted"}`}></div>
+              <div className={`mx-2 h-0.5 flex-1 rounded ${step >= 2 ? "bg-primary" : "bg-muted"}`} />
               <div
-                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 ${step >= 2 ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground"}`}
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium ${step >= 2 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
               >
                 2
               </div>
             </div>
-            <div className="mt-2 flex justify-between text-xs">
+            <div className="mt-2 flex justify-between text-xs text-muted-foreground">
               <span>Account</span>
               <span>Profile</span>
             </div>
           </div>
 
-          {!otpStep ? (
-            <Form {...form}>
+          <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSignup)} className="space-y-4">
                 {step === 1 && (
                   <>
@@ -404,38 +368,8 @@ export function SignupForm() {
                 )}
               </form>
             </Form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="mb-4">
-                <label htmlFor="otp" className="block text-sm font-medium">Enter OTP sent to your email</label>
-                <Input
-                  id="otp"
-                  type="text"
-                  value={otp}
-                  onChange={e => setOtp(e.target.value)}
-                  maxLength={6}
-                  className="mt-2"
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</> : "Verify OTP & Create Account"}
-              </Button>
-            </form>
-          )}
 
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t"></div>
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-          </div>
-
-        
-
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-8 text-center text-sm text-muted-foreground">
             Already have an account?{" "}
             <Link href="/login" className="font-medium text-primary hover:underline">
               Sign in

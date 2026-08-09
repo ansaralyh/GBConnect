@@ -4,8 +4,6 @@ import Link from "next/link"
 import { Mountain, Users, Globe, Heart, Shield } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { MainNav } from "@/components/main-nav"
-import { Footer } from "@/components/footer"
 
 export const metadata: Metadata = {
   title: "About GBConnect | Connecting Tourists with Local Service Providers",
@@ -16,9 +14,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <div className="flex min-h-screen flex-col">
-      <MainNav />
-
-      <main className="flex-1 pt-16">
+      <main className="flex-1">
         {/* Hero Section */}
         <section className="bg-muted py-16 md:py-24">
           <div className="container">
@@ -240,8 +236,6 @@ export default function AboutPage() {
           </div>
         </section>
       </main>
-
-      <Footer />
     </div>
   )
 }

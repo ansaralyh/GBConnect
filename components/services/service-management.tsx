@@ -183,85 +183,7 @@ export function ServiceManagement() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {/* Mobile Header */}
-      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
-        <div className="container flex h-14 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <span className="font-medium">{user.name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/dashboard/provider/settings">
-                <Settings className="h-5 w-5" />
-                <span className="sr-only">Settings</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-5 w-5" />
-              <span className="sr-only">Log out</span>
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="container flex-1 items-start py-6 md:grid md:grid-cols-[220px_1fr] md:gap-6 lg:grid-cols-[240px_1fr] lg:gap-10">
-        {/* Sidebar - Desktop */}
-        <aside className="fixed top-0 z-30 hidden h-screen w-full shrink-0 border-r md:sticky md:block">
-          <div className="flex h-full flex-col gap-2 p-4">
-            <div className="flex h-14 items-center border-b px-4 py-2">
-              <Link href="/" className="flex items-center gap-2 font-semibold">
-                <Image
-                  src="/placeholder.svg?height=30&width=30"
-                  alt="GBConnect Logo"
-                  width={30}
-                  height={30}
-                  className="rounded"
-                />
-                <span>GBConnect</span>
-              </Link>
-            </div>
-            <div className="flex items-center gap-4 px-4 py-2">
-              <Avatar>
-                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium">{user.name}</div>
-                <div className="text-xs text-muted-foreground">{user.email}</div>
-              </div>
-            </div>
-            <nav className="grid gap-1 px-2 pt-4">
-              <Link
-                href="/dashboard/provider"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <Home className="h-4 w-4" />
-                <span>Dashboard</span>
-              </Link>
-              <Link
-                href="/dashboard/provider/settings"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              >
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
-              </Link>
-            </nav>
-            <div className="mt-auto">
-              <Button variant="ghost" className="w-full justify-start" onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </Button>
-            </div>
-          </div>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex w-full flex-col gap-8">
+    <div className="flex w-full flex-col gap-8">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Services</h1>
@@ -444,8 +366,6 @@ export function ServiceManagement() {
               </div>
             )}
           </div>
-        </main>
-      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

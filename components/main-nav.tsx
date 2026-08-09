@@ -32,28 +32,38 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
   }, [])
 
   const isLandingPage = pathname === "/"
+  const onHero = isLandingPage && !isScrolled
   const navbarClass = cn(
     "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-    isLandingPage && !isScrolled
-      ? "bg-transparent"
-      : "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b",
+    onHero
+      ? "border-b border-white/10 bg-black/55 shadow-lg shadow-black/20 backdrop-blur-md"
+      : "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
   )
 
   const linkClass = (path: string) => {
     return cn(
-      "text-sm font-medium transition-colors hover:text-primary",
-      pathname === path ? "text-primary" : isLandingPage && !isScrolled ? "text-white" : "text-muted-foreground",
+      "text-sm font-semibold transition-colors",
+      pathname === path
+        ? onHero
+          ? "text-white"
+          : "text-primary"
+        : onHero
+          ? "text-white hover:text-white/80"
+          : "text-foreground/80 hover:text-primary",
     )
   }
 
-  const logoTextClass = cn("font-bold", isLandingPage && !isScrolled ? "text-white" : "text-foreground")
+  const logoTextClass = cn(
+    "font-display text-lg font-semibold tracking-tight",
+    onHero ? "text-white" : "text-foreground",
+  )
 
   return (
     <header className={navbarClass}>
       <div className="container flex h-16 items-center justify-between">
         <nav className={cn("flex items-center", className)} {...props}>
           <Link href="/" className="flex items-center space-x-2 mr-6">
-            <Mountain className={cn("h-6 w-6", isLandingPage && !isScrolled ? "text-white" : "text-primary")} />
+            <Mountain className={cn("h-6 w-6", onHero ? "text-white" : "text-primary")} />
             <span className={logoTextClass}>GBConnect</span>
           </Link>
 
@@ -74,16 +84,24 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
           {/* Desktop Navigation */}
           {user ? (
             <div className="hidden md:flex md:items-center md:space-x-4">
-              <NotificationBadge />
+              <NotificationBadge className={onHero ? "text-white hover:bg-white/10 hover:text-white" : undefined} />
               <Link href="/messages" className={linkClass("/messages")}>
                 Messages
               </Link>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="p-0 h-8 w-8 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "h-9 w-9 rounded-full p-0",
+                      onHero && "ring-2 ring-white/40 hover:bg-white/10",
+                    )}
+                  >
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarFallback className={onHero ? "bg-white/20 text-white" : undefined}>
+                        {user.name.charAt(0)}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -111,16 +129,22 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
               <Link
                 href="/login"
                 className={cn(
-                  "text-sm font-medium hover:text-primary",
-                  isLandingPage && !isScrolled ? "text-white" : "text-muted-foreground",
+                  "rounded-md px-3 py-2 text-sm font-semibold transition-colors",
+                  onHero
+                    ? "text-white hover:bg-white/15"
+                    : "text-muted-foreground hover:text-primary",
                 )}
               >
                 Login
               </Link>
               <Button
                 asChild
-                variant={isLandingPage && !isScrolled ? "outline" : "default"}
-                className={isLandingPage && !isScrolled ? "border-white text-white hover:bg-white/20" : ""}
+                variant={onHero ? "outline" : "default"}
+                className={
+                  onHero
+                    ? "border-white bg-white text-primary hover:bg-white/90 hover:text-primary"
+                    : ""
+                }
               >
                 <Link href="/signup">Sign Up</Link>
               </Button>
@@ -133,7 +157,7 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
               <Button
                 variant="ghost"
                 size="icon"
-                className={cn("md:hidden", isLandingPage && !isScrolled ? "text-white hover:bg-white/20" : "")}
+                className={cn("md:hidden", onHero ? "text-white hover:bg-white/20 hover:text-white" : "")}
               >
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle menu</span>

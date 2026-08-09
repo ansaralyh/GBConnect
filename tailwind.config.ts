@@ -19,6 +19,10 @@ const config = {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -53,18 +57,22 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Pakistani flag colors and natural colors of Gilgit-Baltistan
         pakistan: {
-          green: "#01411C", // Dark green from Pakistani flag
-          lightGreen: "#128C7E", // Lighter green for accents
-          mountain: "#4A6741", // Mountain green
-          water: "#4F94CD", // Water blue for lakes
-          sand: "#D4B996", // Sandy/earthy tone
-          rock: "#A9A9A9", // Rock/mountain gray
+          green: "#01411C",
+          lightGreen: "#128C7E",
+          mountain: "#4A6741",
+          water: "#4F94CD",
+          sand: "#D4B996",
+          rock: "#A9A9A9",
+        },
+        glacier: {
+          DEFAULT: "hsl(var(--gb-glacier))",
+          foreground: "hsl(150 20% 98%)",
         },
       },
       backgroundImage: {
-        "hero-pattern": "linear-gradient(to bottom, rgba(1, 65, 28, 0.8), rgba(0, 0, 0, 0.6))",
+        "hero-pattern":
+          "linear-gradient(to top, hsl(160 28% 6% / 0.78) 0%, hsl(152 35% 10% / 0.55) 40%, hsl(160 28% 8% / 0.4) 70%, hsl(160 28% 6% / 0.55) 100%)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -92,12 +100,17 @@ const config = {
           from: { opacity: "0", transform: "translateY(10px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        kenburns: {
+          from: { transform: "scale(1)" },
+          to: { transform: "scale(1.08)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.5s ease-out",
         "fade-up": "fade-up 0.5s ease-out",
+        kenburns: "kenburns 18s ease-out forwards",
       },
     },
   },

@@ -29,8 +29,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { MainNav } from "@/components/main-nav"
-import { Footer } from "@/components/footer"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/utils"
 
@@ -202,20 +200,6 @@ export function ServiceListings() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center">
-          <MainNav />
-          <div className="ml-auto flex items-center space-x-4">
-            <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Login
-            </Link>
-            <Button asChild>
-              <Link href="/signup">Sign Up</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
-
       <div className="bg-primary py-8 text-primary-foreground">
         <div className="container">
           <h1 className="text-3xl font-bold">Discover Local Services in Gilgit Baltistan</h1>
@@ -797,8 +781,6 @@ export function ServiceListings() {
           </div>
         </div>
       </main>
-
-      <Footer />
     </div>
   )
 }

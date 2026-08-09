@@ -16,7 +16,7 @@ import { format } from "date-fns"
 export function SearchForm({
   className,
   variant = "default",
-}: { className?: string; variant?: "default" | "minimal" }) {
+}: { className?: string; variant?: "default" | "minimal" | "panel" }) {
   const router = useRouter()
   const [location, setLocation] = useState("")
   const [serviceType, setServiceType] = useState("")
@@ -56,6 +56,94 @@ export function SearchForm({
     )
   }
 
+  if (variant === "panel") {
+    return (
+      <form onSubmit={handleSearch} className={`flex flex-col gap-3 ${className}`}>
+        <div className="relative">
+          <MapPin className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder="Where are you going?"
+            className="h-11 bg-background pl-10 text-foreground"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
+        </div>
+
+        <Select value={serviceType} onValueChange={setServiceType}>
+          <SelectTrigger className="h-11 w-full">
+            <SelectValue placeholder="Service Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Services</SelectItem>
+            <SelectItem value="accommodation">Accommodation</SelectItem>
+            <SelectItem value="food">Food & Dining</SelectItem>
+            <SelectItem value="transport">Transportation</SelectItem>
+            <SelectItem value="tours">Tours & Activities</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-11 w-full justify-start text-left font-normal text-foreground">
+                <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">{startDate ? format(startDate, "MMM d") : "Check-in"}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                initialFocus
+                disabled={(date) => date < new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-11 w-full justify-start text-left font-normal text-foreground">
+                <Calendar className="mr-2 h-4 w-4 shrink-0" />
+                <span className="truncate">{endDate ? format(endDate, "MMM d") : "Check-out"}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarComponent
+                mode="single"
+                selected={endDate}
+                onSelect={setEndDate}
+                initialFocus
+                disabled={(date) => date < (startDate || new Date())}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="relative flex h-11 items-center rounded-md border bg-background px-3 text-foreground">
+          <Users className="absolute left-3 h-4 w-4 text-muted-foreground" />
+          <select
+            className="h-full w-full appearance-none bg-transparent pl-5 text-sm focus:outline-none"
+            value={guests}
+            onChange={(e) => setGuests(Number.parseInt(e.target.value))}
+          >
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
+              <option key={num} value={num} className="bg-background text-foreground">
+                {num} {num === 1 ? "Guest" : "Guests"}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <Button type="submit" className="h-11 w-full">
+          <Search className="mr-2 h-4 w-4" />
+          Search
+        </Button>
+      </form>
+    )
+  }
+
   return (
     <form
       onSubmit={handleSearch}
@@ -88,7 +176,7 @@ export function SearchForm({
       <div className="flex gap-2">
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="h-12 justify-start text-left font-normal sm:w-[150px]">
+            <Button variant="outline" className="h-12 justify-start text-black text-left font-normal sm:w-[150px]">
               <Calendar className="mr-2 h-4 w-4" />
               {startDate ? format(startDate, "PPP") : "Check-in"}
             </Button>
@@ -106,7 +194,7 @@ export function SearchForm({
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className="h-12 justify-start text-left font-normal sm:w-[150px]">
+            <Button variant="outline" className="h-12 justify-start text-black text-left font-normal sm:w-[150px]">
               <Calendar className="mr-2 h-4 w-4" />
               {endDate ? format(endDate, "PPP") : "Check-out"}
             </Button>

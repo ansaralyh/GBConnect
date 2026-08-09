@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '../../services/model';
-import nodemailer from 'nodemailer';
+import { EmailNotConfiguredError, sendOtpEmail } from '@/lib/email';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,9 +14,9 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'No user found with this email' }, { status: 404 });
     }
-    // Generate a 6-digit OTP
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    // Store OTP in a separate collection with expiry (10 min)
+    await db.collection('emailOtps').deleteMany({ email });
     await db.collection('emailOtps').insertOne({
       email,
       otp,
@@ -24,25 +24,26 @@ export async function POST(req: NextRequest) {
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       used: false,
     });
-    // Send OTP email
-    const transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: Number(process.env.EMAIL_PORT),
-      secure: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-    await transporter.sendMail({
-      from: `GBConnect <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: 'GBConnect Password Reset OTP',
-      text: `Your OTP for password reset is: ${otp}\nThis code is valid for 10 minutes.`,
-      html: `<p>Your OTP for password reset is: <b>${otp}</b></p><p>This code is valid for 10 minutes.</p>`,
-    });
-    return NextResponse.json({ message: 'OTP sent to your email' });
+
+    try {
+      await sendOtpEmail({
+        to: email,
+        otp,
+        subject: 'GBConnect password reset code',
+      });
+    } catch (mailError) {
+      await db.collection('emailOtps').deleteMany({ email });
+      console.error('[ForgotPassword] Failed to send OTP email:', mailError instanceof Error ? mailError.message : mailError);
+      return NextResponse.json({
+        error: mailError instanceof EmailNotConfiguredError
+          ? mailError.message
+          : 'Failed to send OTP to your email. Check EMAIL_USER / EMAIL_PASS in .env.',
+      }, { status: 503 });
+    }
+
+    return NextResponse.json({ message: `OTP sent to ${email}` });
   } catch (error) {
+    console.error('[ForgotPassword] error:', error instanceof Error ? error.message : error);
     return NextResponse.json({ error: 'Failed to send OTP' }, { status: 500 });
   }
-} 
+}

@@ -146,31 +146,13 @@ export function ProviderDashboard() {
   }
 
   return (
-    <div className="flex">
-      {/* Sidebar */}
-      <aside className="hidden md:flex flex-col w-56 min-h-screen bg-muted/40 border-r mr-8 p-6">
-        <nav className="flex flex-col gap-4 flex-1">
-          <Link href="/dashboard/provider" className="font-medium text-base hover:text-primary">Dashboard</Link>
-          <Link href="/dashboard/provider/services" className="font-medium text-base hover:text-primary">Services</Link>
-          <Link href="/dashboard/provider/settings" className="font-medium text-base hover:text-primary">Settings</Link>
-          
-          {/* Logout button at bottom */}
-          <div className="mt-auto pt-4 border-t">
-            <Button variant="outline" onClick={handleLogout} className="w-full justify-start">
-              <LogOut className="mr-2 h-4 w-4" /> Logout
-            </Button>
-          </div>
-        </nav>
-      </aside>
-      {/* Main Content */}
-      <div className="flex-1">
-        <div className="container py-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8">
+    <div className="flex-1">
+        <div className="mb-8 flex flex-col items-start justify-between md:flex-row md:items-center">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user.name}</h1>
+              <h1 className="font-display text-3xl font-bold tracking-tight">Welcome back, {user.name}</h1>
               <p className="text-muted-foreground">Here's what's happening with your business today.</p>
             </div>
-            <div className="mt-4 md:mt-0 space-x-2">
+            <div className="mt-4 space-x-2 md:mt-0">
               <Button asChild>
                 <Link href="/dashboard/provider/services/new">
                   <Plus className="mr-2 h-4 w-4" /> Add New Service
@@ -393,8 +375,6 @@ export function ProviderDashboard() {
               ))}
             </div>
           )}
-        </div>
-      </div>
     </div>
   )
 }

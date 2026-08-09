@@ -19,55 +19,51 @@ export function ServiceDetails({ id }: { id: string }) {
   const [provider, setProvider] = useState<any>(null)
 
   useEffect(() => {
-    async function fetchService() {
-      setLoading(true)
-      setError(null)
-      try {
-        const res = await fetch(`/api/services/${id}`)
-        if (!res.ok) throw new Error("Failed to fetch service")
-        const data = await res.json()
-        setService(data)
-      } catch (err: any) {
-        setError(err.message || "Error fetching service")
-      } finally {
-        setLoading(false)
-      }
-    }
-    if (id) fetchService()
-  }, [id])
+    if (!id) return
 
-  useEffect(() => {
-    async function fetchProvider() {
-      if (service?.providerId) {
-        try {
-          const res = await fetch(`/api/user/profile?id=${service.providerId}`)
-          if (res.ok) {
-            const data = await res.json()
-            setProvider(data)
+    let cancelled = false
+
+    async function load() {
+      setLoading(true)
+      setLoadingReviews(true)
+      setError(null)
+
+      try {
+        const [serviceRes, reviewsRes] = await Promise.all([
+          fetch(`/api/services/${id}`),
+          fetch(`/api/services/${id}/review`),
+        ])
+
+        if (!serviceRes.ok) throw new Error("Failed to fetch service")
+
+        const serviceData = await serviceRes.json()
+        const reviewsData = reviewsRes.ok ? await reviewsRes.json() : []
+
+        if (cancelled) return
+
+        setService(serviceData)
+        setReviews(Array.isArray(reviewsData) ? reviewsData : [])
+
+        if (serviceData?.providerId) {
+          const providerRes = await fetch(`/api/user/profile?id=${serviceData.providerId}`)
+          if (!cancelled && providerRes.ok) {
+            setProvider(await providerRes.json())
           }
-        } catch {
-          setProvider(null)
+        }
+      } catch (err: any) {
+        if (!cancelled) setError(err.message || "Error fetching service")
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+          setLoadingReviews(false)
         }
       }
     }
-    fetchProvider()
-  }, [service])
 
-  useEffect(() => {
-    async function fetchReviews() {
-      setLoadingReviews(true)
-      try {
-        const res = await fetch(`/api/services/${id}/review`)
-        if (!res.ok) throw new Error("Failed to fetch reviews")
-        const data = await res.json()
-        setReviews(data)
-      } catch {
-        setReviews([])
-      } finally {
-        setLoadingReviews(false)
-      }
+    load()
+    return () => {
+      cancelled = true
     }
-    if (id) fetchReviews()
   }, [id])
 
   // Calculate average rating and review count from reviews
