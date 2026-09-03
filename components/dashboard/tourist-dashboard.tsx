@@ -129,52 +129,57 @@ export function TouristDashboard() {
   const [recentBookings, setRecentBookings] = useState<any[]>([])
   
   useEffect(() => {
-    // Check if user is authenticated
     if (!user) {
       router.push("/login")
       return
     }
-    setLoadingBookings(true)
-    fetch(`/api/bookings?userId=${user.id || user._id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch bookings")
-        const data = await res.json()
-        setBookings(data)
-      })
-      .catch(() => setBookings([]))
-      .finally(() => setLoadingBookings(false))
-  }, [user, router])
-  
-  useEffect(() => {
-    // Fetch all services for recommendations
-    fetch('/api/services')
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch services')
-        const data = await res.json()
-        setServices(data)
-      })
-      .catch(() => setServices([]))
-  }, [])
 
-  useEffect(() => {
-    if (!user) return
-    // Fetch recent reviews
-    fetch(`/api/services/review?userId=${user.id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch reviews')
-        const data = await res.json()
-        setRecentReviews(data)
-      })
-      .catch(() => setRecentReviews([]))
-    // Fetch recent bookings
-    fetch(`/api/bookings?userId=${user.id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch bookings')
-        const data = await res.json()
-        setRecentBookings(data)
-      })
-      .catch(() => setRecentBookings([]))
-  }, [user])
+    let cancelled = false
+    const userId = user.id || user._id
+
+    async function loadDashboard() {
+      setIsLoading(true)
+      setLoadingBookings(true)
+      try {
+        const [bookingsRes, servicesRes, reviewsRes] = await Promise.all([
+          fetch(`/api/bookings?userId=${userId}`),
+          fetch("/api/services"),
+          fetch(`/api/services/review?userId=${userId}`),
+        ])
+
+        const [bookingsData, servicesData, reviewsData] = await Promise.all([
+          bookingsRes.ok ? bookingsRes.json() : [],
+          servicesRes.ok ? servicesRes.json() : [],
+          reviewsRes.ok ? reviewsRes.json() : [],
+        ])
+
+        if (cancelled) return
+
+        const nextBookings = Array.isArray(bookingsData) ? bookingsData : []
+        setBookings(nextBookings)
+        setRecentBookings(nextBookings)
+        setServices(Array.isArray(servicesData) ? servicesData : [])
+        setRecentReviews(Array.isArray(reviewsData) ? reviewsData : [])
+      } catch {
+        if (!cancelled) {
+          setBookings([])
+          setRecentBookings([])
+          setServices([])
+          setRecentReviews([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingBookings(false)
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadDashboard()
+    return () => {
+      cancelled = true
+    }
+  }, [user, router])
   
   const handleLogout = () => {
     logout()

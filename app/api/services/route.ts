@@ -7,7 +7,25 @@ export async function GET() {
     const client = await connectToDatabase()
     const db = client.db()
 
-    const services = await db.collection('services').find({}).toArray()
+    const services = await db
+      .collection('services')
+      .find({})
+      .project({
+        title: 1,
+        description: 1,
+        price: 1,
+        // List views only need the cover image — full galleries stay on detail routes
+        images: { $slice: 1 },
+        category: 1,
+        location: 1,
+        providerId: 1,
+        status: 1,
+        rating: 1,
+        createdAt: 1,
+      })
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .toArray()
 
     const providerIds = [
       ...new Set(

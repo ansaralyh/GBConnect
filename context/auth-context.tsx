@@ -107,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem("gbconnect-user")
+    localStorage.removeItem("gbconnect-token")
     router.push("/login")
   }
 

@@ -15,21 +15,21 @@ function maskUri(connectionUri: string) {
 function createClientPromise() {
   const client = new MongoClient(uri, {
     maxPoolSize: 10,
-    minPoolSize: 1,
-    serverSelectionTimeoutMS: 10000,
-    connectTimeoutMS: 10000,
-    family: 4,
+    minPoolSize: 0,
+    maxIdleTimeMS: 60000,
+    serverSelectionTimeoutMS: 8000,
+    connectTimeoutMS: 8000,
+    socketTimeoutMS: 20000,
   })
-  console.log('[DB] Creating MongoDB connection pool:', maskUri(uri))
-  return client.connect().then((connected) => {
-    console.log('[DB] MongoDB connected successfully')
-    return connected
-  })
+  return client.connect()
 }
 
 export async function connectToDatabase() {
   if (!global._mongoClientPromise) {
-    global._mongoClientPromise = createClientPromise()
+    global._mongoClientPromise = createClientPromise().catch((error) => {
+      global._mongoClientPromise = undefined
+      throw error
+    })
   }
   return global._mongoClientPromise
 }

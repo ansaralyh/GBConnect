@@ -18,7 +18,6 @@ import { formatCurrency } from "@/lib/utils"
 export function ProviderDashboard() {
   const { user, logout } = useAuth()
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
   const [services, setServices] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -29,67 +28,65 @@ export function ProviderDashboard() {
   const [pendingBookings, setPendingBookings] = useState(0)
 
   useEffect(() => {
-    // Check if user is authenticated
     if (!user) {
       router.push("/login")
-      return
     }
-
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false)
-    }, 1000)
-
-    return () => clearTimeout(timer)
   }, [user, router])
 
   useEffect(() => {
-    if (!user) return;
-    const fetchServices = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/services/provider?providerId=${user.id}`);
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setServices(data);
-          setTotalServices(data.length);
-        } else {
-          setServices([]);
-          setTotalServices(0);
-        }
-      } catch (err) {
-        setServices([]);
-        setTotalServices(0);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchServices();
-  }, [user]);
+    if (!user) return
 
-  useEffect(() => {
-    if (!user) return;
-    setLoadingBookings(true);
-    fetch(`/api/bookings?providerId=${user.id}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Failed to fetch bookings');
-        const data = await res.json();
-        setBookings(data);
-        
-        // Calculate dynamic metrics
-        const revenue = data.reduce((sum: number, booking: any) => {
-          return sum + (Number(booking.totalPrice) || 0);
-        }, 0);
-        setTotalRevenue(revenue);
-        
-        const pending = data.filter((booking: any) => 
-          booking.status === 'pending' || booking.status === 'confirmed'
-        ).length;
-        setPendingBookings(pending);
-      })
-      .catch(() => setBookings([]))
-      .finally(() => setLoadingBookings(false));
-  }, [user]);
+    let cancelled = false
+
+    async function loadDashboard() {
+      setLoading(true)
+      setLoadingBookings(true)
+      try {
+        const [servicesRes, bookingsRes] = await Promise.all([
+          fetch(`/api/services/provider?providerId=${user!.id}`),
+          fetch(`/api/bookings?providerId=${user!.id}`),
+        ])
+
+        const [servicesData, bookingsData] = await Promise.all([
+          servicesRes.json(),
+          bookingsRes.json(),
+        ])
+
+        if (cancelled) return
+
+        const nextServices = Array.isArray(servicesData) ? servicesData : []
+        const nextBookings = Array.isArray(bookingsData) ? bookingsData : []
+
+        setServices(nextServices)
+        setTotalServices(nextServices.length)
+        setBookings(nextBookings)
+        setTotalRevenue(
+          nextBookings.reduce((sum: number, booking: any) => sum + (Number(booking.totalPrice) || 0), 0),
+        )
+        setPendingBookings(
+          nextBookings.filter(
+            (booking: any) => booking.status === "pending" || booking.status === "confirmed",
+          ).length,
+        )
+      } catch {
+        if (!cancelled) {
+          setServices([])
+          setTotalServices(0)
+          setBookings([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+          setLoadingBookings(false)
+        }
+      }
+    }
+
+    loadDashboard()
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   const handleLogout = () => {
     logout()

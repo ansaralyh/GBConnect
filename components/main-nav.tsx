@@ -16,7 +16,7 @@ import { useAuth } from "@/context/auth-context"
 import { NotificationBadge } from "@/components/notification-badge"
 
 export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElement>) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const pathname = usePathname()
@@ -118,8 +118,11 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
                       Settings
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/logout">Logout</Link>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onSelect={() => logout()}
+                  >
+                    Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -266,13 +269,16 @@ export function MainNav({ className, ...props }: React.HTMLAttributes<HTMLElemen
                           </Link>
                         </SheetClose>
                         <SheetClose asChild>
-                          <Link
-                            href="/logout"
-                            className="flex items-center py-2 text-base font-medium text-red-500"
-                            onClick={() => setIsOpen(false)}
+                          <button
+                            type="button"
+                            className="flex w-full items-center py-2 text-left text-base font-medium text-red-500"
+                            onClick={() => {
+                              setIsOpen(false)
+                              logout()
+                            }}
                           >
                             Logout
-                          </Link>
+                          </button>
                         </SheetClose>
                       </div>
                     </div>

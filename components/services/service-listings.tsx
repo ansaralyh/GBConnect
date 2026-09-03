@@ -63,7 +63,6 @@ export function ServiceListings() {
       .then(async (res) => {
         if (!res.ok) throw new Error("Failed to fetch services")
         let data = await res.json()
-        console.log('Fetched services:', data) // Debug log
         // Map _id to id for each service
         data = data.map((service: any) => ({
           ...service,
@@ -71,8 +70,7 @@ export function ServiceListings() {
         }))
         setServices(data)
       })
-      .catch((error) => {
-        console.error('Error fetching services:', error) // Debug log
+      .catch(() => {
         setServices([])
         setError("Failed to load services. Please try again.")
       })
@@ -131,7 +129,6 @@ export function ServiceListings() {
         break
     }
 
-    console.log('Filtered services:', filtered) // Debug log
     setFilteredServices(filtered)
   }, [location, serviceType, priceRange, minRating, amenities, sortBy, services])
 
